@@ -1,587 +1,574 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  // Theme Colors
+  final Color _bgCream = const Color(0xFFF7F5F0);
+  final Color _leafGreen = const Color(0xFF4A6741);
+  final Color _sageSoft = const Color(0xFF8FA88A);
+  final Color _softBlack = const Color(0xFF2D3436);
+
+  bool _isLoading = true;
+  bool _isEditing = false; // Toggle for Edit Mode
+
+  // Controllers for editing
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _ageController = TextEditingController();
+  final TextEditingController _weightController = TextEditingController();
+  final TextEditingController _heightController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _allergiesController = TextEditingController();
+
+  String _dietaryPreference = 'None';
+  final List<String> _dietaryOptions = [
+    'None',
+    'Vegan',
+    'Vegetarian',
+    'Gluten Free',
+    'Halal',
+    'Keto',
+    'Paleo',
+  ];
+
+  Map<String, dynamic>? _profile;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        final data = await Supabase.instance.client
+            .from('profiles')
+            .select()
+            .eq('id', user.id)
+            .single();
+
+        if (mounted) {
+          setState(() {
+            _profile = data;
+            _isLoading = false;
+            _populateControllers();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching profile: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _populateControllers() {
+    if (_profile == null) return;
+    _nameController.text = _profile!['full_name'] ?? '';
+    _ageController.text = (_profile!['age'] ?? '').toString();
+    _weightController.text = (_profile!['weight'] ?? '').toString();
+    _heightController.text = (_profile!['height'] ?? '').toString();
+    _phoneController.text = _profile!['phone'] ?? '';
+    _dietaryPreference = _profile!['dietary_preference'] ?? 'None';
+
+    final allergies = _profile!['allergies'] as List<dynamic>?;
+    _allergiesController.text = allergies?.join(', ') ?? '';
+  }
+
+  Future<void> _saveProfile() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+
+      final updates = {
+        'full_name': _nameController.text.trim(),
+        'age': int.tryParse(_ageController.text) ?? 0,
+        'weight': double.tryParse(_weightController.text) ?? 0.0,
+        'height': double.tryParse(_heightController.text) ?? 0.0,
+        'phone': _phoneController.text.trim(),
+        'dietary_preference': _dietaryPreference,
+        'allergies': _allergiesController.text
+            .split(',')
+            .map((e) => e.trim())
+            .toList(),
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      await Supabase.instance.client
+          .from('profiles')
+          .update(updates)
+          .eq('id', user.id);
+
+      // Refresh data
+      await _fetchProfile();
+
+      if (mounted) {
+        setState(() => _isEditing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating profile: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Premium Color Palette
-    final emeraldPrimary = const Color(0xFF10B981);
-    final sageSoft = const Color(0xFFD1FAE5);
-    final slateDark = const Color(0xFF1F2937); // Text
-    final warningRed = const Color(0xFFEF4444);
-    final warningBg = const Color(0xFFFEF2F2);
-    final softGray = const Color(0xFFF9FAFB);
+    if (_isLoading && _profile == null) {
+      return Scaffold(
+        backgroundColor: _bgCream,
+        body: Center(child: CircularProgressIndicator(color: _leafGreen)),
+      );
+    }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: _bgCream,
       appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new, color: _softBlack),
+          onPressed: () => Navigator.pop(context),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         title: Text(
-          'My Health Payload',
+          _isEditing ? 'Edit Profile' : 'My Safety Profile',
           style: GoogleFonts.outfit(
-            color: slateDark,
-            fontWeight: FontWeight.w600,
+            color: _softBlack,
+            fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
         actions: [
-          IconButton(
-            icon: Icon(Icons.settings_outlined, color: slateDark),
-            onPressed: () {},
-          ),
+          if (_isEditing)
+            IconButton(
+              icon: Icon(Icons.save, color: _leafGreen),
+              onPressed: _saveProfile,
+            )
+          else
+            IconButton(
+              icon: Icon(Icons.edit_outlined, color: _softBlack),
+              onPressed: () => setState(() => _isEditing = true),
+            ),
+          if (!_isEditing)
+            IconButton(
+              icon: Icon(Icons.logout, color: Colors.red[300]),
+              onPressed: () {
+                Supabase.instance.client.auth.signOut();
+                Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil('/', (route) => false);
+              },
+            ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 40),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Basic Profile Header
-            _buildProfileHeader(emeraldPrimary, slateDark),
+            // 1. Header (Avatar + Name/Inputs)
+            _buildHeader(_leafGreen, _softBlack),
+            const SizedBox(height: 32),
 
-            const SizedBox(height: 24),
+            // 2. Health Stats Row (Weight, Height, BMI)
+            _buildStatsSection(_leafGreen, _sageSoft),
+            const SizedBox(height: 32),
 
-            // 2. Medical History (CRITICAL SAFETY LAYER)
-            _buildSectionTitle('Medical Safety Context', slateDark),
-            _buildMedicalContextCard(warningRed, warningBg, slateDark),
+            // 3. Dietary Info (Dynamic)
+            _buildSectionTitle('Dietary Configuration'),
+            _buildDietarySection(_leafGreen, _bgCream),
+            const SizedBox(height: 32),
 
-            const SizedBox(height: 24),
-
-            // 3. Dietary Preferences
-            _buildSectionTitle('Dietary Configuration', slateDark),
-            _buildDietaryPreferences(emeraldPrimary, sageSoft),
-
-            const SizedBox(height: 24),
-
-            // 4. Food Scan Reports
-            _buildSectionTitle('Recent Intake Scans', slateDark),
-            _buildScanHistory(emeraldPrimary, slateDark),
-
-            const SizedBox(height: 24),
-
-            // 5. Trends
-            _buildSectionTitle('Progress & Trends', slateDark),
-            _buildTrendChart(emeraldPrimary),
-
-            const SizedBox(height: 40),
-
-            // 6. Footer / Data Control
-            _buildFooter(slateDark),
-          ],
+            // 4. Contact Info
+            _buildSectionTitle('Contact Details'),
+            _buildContactSection(_softBlack),
+            const SizedBox(height: 32),
+          ].animate(interval: 50.ms).fadeIn().slideY(begin: 0.1, end: 0),
         ),
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title, Color textColor) {
+  Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Text(
         title,
         style: GoogleFonts.outfit(
           fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: textColor,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProfileHeader(Color primary, Color text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        children: [
-          // Avatar with Health Ring
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 84,
-                height: 84,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: primary, width: 3),
-                ),
-                child: const CircleAvatar(
-                  backgroundColor: Color(0xFFE5E7EB),
-                  child: Icon(Icons.person, size: 40, color: Colors.grey),
-                ),
-              ),
-              Positioned(
-                bottom: 0,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: primary,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '92/100',
-                    style: GoogleFonts.outfit(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 20),
-          // User Stats
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Krish, 24 M',
-                  style: GoogleFonts.outfit(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: text,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    _buildVitalPill('178 cm'),
-                    const SizedBox(width: 8),
-                    _buildVitalPill('75 kg'),
-                    const SizedBox(width: 8),
-                    _buildVitalPill('BMI: 23.6'),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Activity: Moderate Exercise',
-                  style: GoogleFonts.outfit(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVitalPill(String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF3F4F6),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.outfit(
-          color: const Color(0xFF374151),
-          fontSize: 12,
           fontWeight: FontWeight.w600,
+          color: _softBlack,
         ),
       ),
     );
   }
 
-  Widget _buildMedicalContextCard(Color alertColor, Color bg, Color text) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.medical_services_outlined,
-                color: alertColor,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'ACTIVE CONDITIONS',
-                style: GoogleFonts.outfit(
-                  color: alertColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                  letterSpacing: 1.0,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildConditionChip('Type 2 Diabetes', alertColor),
-              _buildConditionChip('Hypertension', alertColor),
-            ],
-          ),
-          const Divider(height: 24),
-          Row(
-            children: [
-              Icon(Icons.medication_outlined, color: text, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Current Medications',
-                style: GoogleFonts.outfit(
-                  fontWeight: FontWeight.w600,
-                  color: text,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _buildMedicationRow('Metformin', '500mg - Morning', true),
-          _buildMedicationRow('Lisinopril', '10mg - Night', false),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: bg,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: alertColor.withOpacity(0.3)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.warning_amber_rounded, color: alertColor, size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Avoid Grapefruit: Interacts with your medication.',
-                    style: GoogleFonts.outfit(
-                      color: const Color(0xFF7F1D1D),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildConditionChip(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.2)),
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.outfit(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMedicationRow(String name, String dosage, bool taken) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: taken ? const Color(0xFF10B981) : Colors.grey[300],
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                name,
-                style: GoogleFonts.outfit(color: const Color(0xFF374151)),
-              ),
-            ],
-          ),
-          Text(
-            dosage,
-            style: GoogleFonts.outfit(color: Colors.grey[500], fontSize: 12),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDietaryPreferences(Color primary, Color secondary) {
-    return Container(
-      height: 110,
-      margin: const EdgeInsets.only(left: 20),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          _buildDietOption('Vegan', Icons.eco, true, primary, secondary),
-          _buildDietOption(
-            'Gluten Free',
-            Icons.grass,
-            false,
-            primary,
-            secondary,
-          ),
-          _buildDietOption('Halal', Icons.star, false, primary, secondary),
-          _buildCautionOption('Peanuts'),
-          _buildCautionOption('Shellfish'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDietOption(
-    String label,
-    IconData icon,
-    bool isSelected,
-    Color primary,
-    Color bg,
-  ) {
-    return Container(
-      width: 100,
-      margin: const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(
-        color: isSelected ? bg : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isSelected ? primary : const Color(0xFFE5E7EB),
-          width: isSelected ? 2 : 1,
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: isSelected ? primary : Colors.grey, size: 28),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: GoogleFonts.outfit(
-              color: isSelected ? primary : Colors.grey[700],
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCautionOption(String label) {
-    return Container(
-      width: 100,
-      margin: const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFECACA)),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.block, color: Color(0xFFEF4444), size: 28),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: GoogleFonts.outfit(
-              color: const Color(0xFFB91C1C),
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildScanHistory(Color primary, Color text) {
-    return SizedBox(
-      height: 140,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        scrollDirection: Axis.horizontal,
-        itemCount: 3,
-        separatorBuilder: (_, __) => const SizedBox(width: 16),
-        itemBuilder: (context, index) {
-          return Container(
-            width: 280,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(12),
-                    image: const DecorationImage(
-                      // Placeholder for scan image
-                      image: NetworkImage('https://placehold.co/100x100/png'),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Oatmeal & Berries',
-                        style: GoogleFonts.outfit(
-                          fontWeight: FontWeight.bold,
-                          color: text,
-                        ),
-                      ),
-                      Text(
-                        'Today, 8:30 AM',
-                        style: GoogleFonts.outfit(
-                          fontSize: 12,
-                          color: Colors.grey[500],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      // Mini macros
-                      Row(
-                        children: [
-                          _buildMacroDot('320 kcal', primary),
-                          const SizedBox(width: 8),
-                          _buildMacroDot('Low Sugar', primary),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildMacroDot(String label, Color color) {
+  Widget _buildHeader(Color primary, Color text) {
     return Row(
       children: [
         Container(
-          width: 6,
-          height: 6,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: primary.withOpacity(0.1),
+            border: Border.all(color: primary, width: 2),
+            image: const DecorationImage(
+              image: NetworkImage(
+                "https://placehold.co/100x100/png",
+              ), // Placeholder
+              fit: BoxFit.cover,
+            ),
+          ),
         ),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey[600]),
+        const SizedBox(width: 20),
+        Expanded(
+          child: _isEditing
+              ? Column(
+                  children: [
+                    _buildEditField(_nameController, "Full Name"),
+                    const SizedBox(height: 8),
+                    _buildEditField(
+                      _ageController,
+                      "Age",
+                      type: TextInputType.number,
+                    ),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _nameController.text.isEmpty
+                          ? 'Guest'
+                          : _nameController.text,
+                      style: GoogleFonts.outfit(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: text,
+                      ),
+                    ),
+                    Text(
+                      '${_ageController.text} Years',
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        color: text.withOpacity(0.6),
+                      ),
+                    ),
+                  ],
+                ),
         ),
       ],
     );
   }
 
-  Widget _buildTrendChart(Color primary) {
+  Widget _buildStatsSection(Color primary, Color secondary) {
+    if (_isEditing) {
+      return Row(
+        children: [
+          Expanded(
+            child: _buildEditField(
+              _weightController,
+              "Weight (kg)",
+              type: TextInputType.number,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: _buildEditField(
+              _heightController,
+              "Height (cm)",
+              type: TextInputType.number,
+            ),
+          ),
+        ],
+      );
+    }
+
+    double h = double.tryParse(_heightController.text) ?? 0;
+    double w = double.tryParse(_weightController.text) ?? 0;
+    double bmi = (h > 0) ? w / ((h / 100) * (h / 100)) : 0;
+
     return Container(
-      height: 200,
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: LineChart(
-        LineChartData(
-          gridData: const FlGridData(show: false),
-          titlesData: const FlTitlesData(
-            show: true,
-            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: primary.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
-          borderData: FlBorderData(show: false),
-          lineBarsData: [
-            LineChartBarData(
-              spots: const [
-                FlSpot(0, 3),
-                FlSpot(1, 4),
-                FlSpot(2, 3.5),
-                FlSpot(3, 5),
-                FlSpot(4, 4),
-                FlSpot(5, 6),
-                FlSpot(6, 6.5),
-              ],
-              isCurved: true,
-              color: primary,
-              barWidth: 3,
-              dotData: const FlDotData(show: false),
-              belowBarData: BarAreaData(
-                show: true,
-                color: primary.withOpacity(0.1),
-              ),
-            ),
-          ],
-        ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildStatItem(
+            'Weight',
+            '$w kg',
+            Icons.monitor_weight_outlined,
+            primary,
+          ),
+          Container(width: 1, height: 40, color: Colors.grey[200]),
+          _buildStatItem(
+            'Height',
+            '${h.toStringAsFixed(0)} cm',
+            Icons.height,
+            primary,
+          ),
+          Container(width: 1, height: 40, color: Colors.grey[200]),
+          _buildStatItem(
+            'BMI',
+            bmi.toStringAsFixed(1),
+            Icons.assessment_outlined,
+            primary,
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildFooter(Color text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
+  Widget _buildStatItem(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Column(
+      children: [
+        Icon(icon, color: color.withOpacity(0.8), size: 20),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: GoogleFonts.outfit(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: _softBlack,
+          ),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.outfit(
+            fontSize: 12,
+            color: _softBlack.withOpacity(0.5),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDietarySection(Color primary, Color bg) {
+    if (_isEditing) {
+      return Column(
         children: [
-          OutlinedButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.download_rounded),
-            label: const Text('Export Health Report (PDF)'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(
+          DropdownButtonFormField<String>(
+            value: _dietaryOptions.contains(_dietaryPreference)
+                ? _dietaryPreference
+                : 'None',
+            items: _dietaryOptions
+                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                .toList(),
+            onChanged: (val) => setState(() => _dietaryPreference = val!),
+            decoration: InputDecoration(
+              labelText: "Dietary Preference",
+              border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
+              filled: true,
+              fillColor: Colors.white,
             ),
           ),
-          const SizedBox(height: 20),
-          Text(
-            'Your medical data is encrypted and stored locally on your device.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 10),
+          const SizedBox(height: 16),
+          _buildEditField(_allergiesController, "Allergies (comma separated)"),
+        ],
+      );
+    }
+
+    final allergies = _allergiesController.text
+        .split(',')
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: primary.withOpacity(0.2)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.restaurant, color: primary),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Dietary Preference',
+                    style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey),
+                  ),
+                  Text(
+                    _dietaryPreference,
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: _softBlack,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (allergies.isNotEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF2F2),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFFECACA)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.warning_amber_rounded,
+                      color: Color(0xFFEF4444),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Allergies',
+                      style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFFB91C1C),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: allergies
+                      .map(
+                        (a) => Chip(
+                          label: Text(a.trim()),
+                          backgroundColor: Colors.white,
+                          labelStyle: const TextStyle(
+                            color: Color(0xFFB91C1C),
+                            fontSize: 12,
+                          ),
+                          side: BorderSide.none,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
+            ),
+          )
+        else
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: primary.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.check_circle_outline, color: primary),
+                const SizedBox(width: 12),
+                Text('No known allergies.', style: TextStyle(color: primary)),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildContactSection(Color text) {
+    if (_isEditing) {
+      return _buildEditField(
+        _phoneController,
+        "Phone Number",
+        type: TextInputType.phone,
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.phone_iphone_rounded, color: Colors.grey),
+          const SizedBox(width: 16),
+          Text(
+            _phoneController.text.isEmpty
+                ? 'No phone number'
+                : _phoneController.text,
+            style: GoogleFonts.outfit(fontSize: 16, color: text),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEditField(
+    TextEditingController controller,
+    String label, {
+    TextInputType type = TextInputType.text,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: type,
+      decoration: InputDecoration(
+        labelText: label,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        filled: true,
+        fillColor: Colors.white,
       ),
     );
   }
