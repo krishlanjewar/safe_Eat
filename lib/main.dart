@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'features/profile/presentation/pages/profile_screen.dart';
-import 'features/main_layout/main_layout.dart';
+
+import 'features/navigation/bottom_navigation.dart';
 
 void main() {
   runApp(const MyApp());
