@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:safeat/features/home/presentation/pages/home_screen.dart';
-// import 'package:safeat/features/search/presentation/pages/search_screen.dart'; // Will implement later
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -40,7 +39,7 @@ class _MainLayoutState extends State<MainLayout> {
           onTap: (index) => setState(() => _currentIndex = index),
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF7C3AED), // Purple
+          selectedItemColor: const Color(0xFF4A6741), // Leaf Green
           unselectedItemColor: Colors.grey[400],
           selectedLabelStyle: GoogleFonts.outfit(
             fontSize: 10,
@@ -69,7 +68,7 @@ class _MainLayoutState extends State<MainLayout> {
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.smart_toy_outlined),
-              label: 'Tia',
+              label: 'Chat',
             ),
           ],
         ),
