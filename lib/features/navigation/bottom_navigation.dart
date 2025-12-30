@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:safeat/features/home/presentation/pages/home_screen.dart';
+import 'package:safeat/features/chatbot/presentation/pages/chat_screen.dart';
+import 'package:safeat/features/search/presentation/pages/search_screen.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -14,10 +16,10 @@ class _MainLayoutState extends State<MainLayout> {
 
   final List<Widget> _screens = [
     const HomeScreen(),
-    const Center(child: Text("Search Screen Placeholder")),
+    const SearchScreen(),
     const Center(child: Text("Scan Screen Placeholder")),
     const Center(child: Text("Pre-Shopping Screen Placeholder")),
-    const Center(child: Text("Tia Chat Screen Placeholder")),
+    const ChatScreen(),
   ];
 
   @override
