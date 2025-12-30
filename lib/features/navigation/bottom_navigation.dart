@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:safeat/features/home/presentation/pages/home_screen.dart';
-// import 'package:safeat/features/search/presentation/pages/search_screen.dart'; // Will implement later
+import 'package:safeat/features/search/presentation/pages/search_screen.dart';
+import 'package:safeat/features/chatbot/presentation/pages/chat_screen.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -15,10 +16,10 @@ class _MainLayoutState extends State<MainLayout> {
 
   final List<Widget> _screens = [
     const HomeScreen(),
-    const Center(child: Text("Search Screen Placeholder")),
+    const SearchScreen(),
     const Center(child: Text("Scan Screen Placeholder")),
     const Center(child: Text("Pre-Shopping Screen Placeholder")),
-    const Center(child: Text("Tia Chat Screen Placeholder")),
+    const ChatScreen(),
   ];
 
   @override
@@ -29,7 +30,7 @@ class _MainLayoutState extends State<MainLayout> {
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, -5),
             ),
@@ -69,7 +70,7 @@ class _MainLayoutState extends State<MainLayout> {
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.smart_toy_outlined),
-              label: 'Tia',
+              label: 'Snacky',
             ),
           ],
         ),
