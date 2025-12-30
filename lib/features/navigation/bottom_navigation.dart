@@ -68,7 +68,7 @@ class _MainLayoutState extends State<MainLayout> {
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.smart_toy_outlined),
-              label: 'Chat',
+              label: 'Snacky',
             ),
           ],
         ),
