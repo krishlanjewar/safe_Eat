@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:safeat/features/home/presentation/pages/home_screen.dart';
+<<<<<<< HEAD
+import 'package:safeat/features/search/presentation/pages/search_screen.dart';
+import 'package:safeat/features/chatbot/presentation/pages/chat_screen.dart';
+import 'package:safeat/features/pre_shopping/presentation/pages/pre_shopping_screen.dart';
+=======
+>>>>>>> origin/main
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -16,8 +22,13 @@ class _MainLayoutState extends State<MainLayout> {
     const HomeScreen(),
     const Center(child: Text("Search Screen Placeholder")),
     const Center(child: Text("Scan Screen Placeholder")),
+<<<<<<< HEAD
+    const PreShoppingScreen(),
+    const ChatScreen(),
+=======
     const Center(child: Text("Pre-Shopping Screen Placeholder")),
     const Center(child: Text("Tia Chat Screen Placeholder")),
+>>>>>>> origin/main
   ];
 
   @override
@@ -39,7 +50,11 @@ class _MainLayoutState extends State<MainLayout> {
           onTap: (index) => setState(() => _currentIndex = index),
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
+<<<<<<< HEAD
+          selectedItemColor: const Color(0xFF7B1FA2), // Purple 700 to match button
+=======
           selectedItemColor: const Color(0xFF4A6741), // Leaf Green
+>>>>>>> origin/main
           unselectedItemColor: Colors.grey[400],
           selectedLabelStyle: GoogleFonts.outfit(
             fontSize: 10,
