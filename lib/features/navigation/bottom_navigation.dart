@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:safeat/features/home/presentation/pages/home_screen.dart';
 import 'package:safeat/features/search/presentation/pages/search_screen.dart';
 import 'package:safeat/features/chatbot/presentation/pages/chat_screen.dart';
+import 'package:safeat/features/pre_shopping/presentation/pages/pre_shopping_screen.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -18,7 +19,7 @@ class _MainLayoutState extends State<MainLayout> {
     const HomeScreen(),
     const SearchScreen(),
     const Center(child: Text("Scan Screen Placeholder")),
-    const Center(child: Text("Pre-Shopping Screen Placeholder")),
+    const PreShoppingScreen(),
     const ChatScreen(),
   ];
 
@@ -41,7 +42,7 @@ class _MainLayoutState extends State<MainLayout> {
           onTap: (index) => setState(() => _currentIndex = index),
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF7C3AED), // Purple
+          selectedItemColor: const Color(0xFF7B1FA2), // Purple 700 to match button
           unselectedItemColor: Colors.grey[400],
           selectedLabelStyle: GoogleFonts.outfit(
             fontSize: 10,
