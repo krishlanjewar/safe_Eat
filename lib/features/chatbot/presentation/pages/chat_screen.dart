@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:safeat/features/chatbot/data/perplexity_service.dart';
-
+import 'package:safeat/features/chatbot/data/gemini_service.dart';
+// import 'package:safeat/features/chatbot/data/perplexity_service.dart';
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
 
@@ -12,7 +12,8 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _textController = TextEditingController();
-  final PerplexityService _perplexityService = PerplexityService();
+  final GeminiService _geminiService = GeminiService();
+    // final PerplexityService _perplexityService = PerplexityService();
   final List<ChatMessage> _messages = [
     ChatMessage(
       text:
@@ -31,7 +32,8 @@ class _ChatScreenState extends State<ChatScreen> {
     });
 
     try {
-      final responseText = await _perplexityService.sendMessage(text);
+      final responseText = await _geminiService.sendMessage(text);
+      //  final responseText = await _perplexityService.sendMessage(text);
       if (mounted) {
         setState(() {
           _messages.add(ChatMessage(text: responseText, isUser: false));
