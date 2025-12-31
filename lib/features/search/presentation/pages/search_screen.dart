@@ -133,7 +133,7 @@ class SearchScreen extends StatelessWidget {
                  padding: const EdgeInsets.all(20),
                  decoration: BoxDecoration(
                    gradient: LinearGradient(
-                     colors: [const Color(0xFFEaddFF), const Color(0xFFF3E8FF)],
+                     colors: [const Color(0xFFE1bee7), const Color(0xFFF3E5F5)], // Purple 100, Purple 50
                      begin: Alignment.topLeft,
                      end: Alignment.bottomRight,
                    ),
@@ -169,7 +169,7 @@ class SearchScreen extends StatelessWidget {
                            ElevatedButton(
                              onPressed: () {},
                              style: ElevatedButton.styleFrom(
-                               backgroundColor: const Color(0xFF5E35B1), // Button purple
+                               backgroundColor: const Color(0xFF7B1FA2), // Purple 700
                                foregroundColor: Colors.white,
                                shape: RoundedRectangleBorder(
                                  borderRadius: BorderRadius.circular(30),
@@ -201,7 +201,7 @@ class SearchScreen extends StatelessWidget {
                        flex: 2,
                        child: Icon(Icons.smart_toy_rounded, 
                          size: 80, 
-                         color: const Color(0xFF5E35B1).withValues(alpha: 0.8)
+                         color: const Color(0xFF7B1FA2).withValues(alpha: 0.8)
                        ),
                      ),
                    ],
@@ -236,7 +236,7 @@ class SearchScreen extends StatelessWidget {
                              ),
                            ),
                            child: Center(
-                             child: Icon(Icons.fastfood, color: Colors.purple.withValues(alpha: 0.3), size: 30), // Placeholder icon
+                             child: Icon(Icons.fastfood, color: const Color(0xFF7B1FA2).withValues(alpha: 0.3), size: 30), // Placeholder icon
                            ),
                          ),
                        ),
