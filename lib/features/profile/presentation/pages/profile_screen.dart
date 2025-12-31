@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
+import 'package:safeat/providers/user_provider.dart';
+import 'package:safeat/models/user_model.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -29,15 +32,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _allergiesController = TextEditingController();
 
   String _dietaryPreference = 'None';
-  final List<String> _dietaryOptions = [
-    'None',
-    'Vegan',
-    'Vegetarian',
-    'Gluten Free',
-    'Halal',
-    'Keto',
-    'Paleo',
-  ];
 
   Map<String, dynamic>? _profile;
 
@@ -134,7 +128,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading && _profile == null) {
+    // 1. Get user from Provider
+    final userData = context.watch<UserProvider>().user;
+
+    // 2. Logic to handle "local/demo data" or "backend data"
+    // If we have data from signup (Provider), use it.
+    // Otherwise fallback to what we fetched from Supabase (if any).
+    final String name = userData?.name ?? _profile?['full_name'] ?? 'Guest';
+    final String age = userData != null ? userData.age.toString() : (_profile?['age'] ?? '0').toString();
+    final double weight = userData?.weight ?? (_profile?['weight']?.toDouble() ?? 0.0);
+    final double height = userData?.height ?? (_profile?['height']?.toDouble() ?? 0.0);
+    final String dietary = userData?.dietaryPreference ?? _profile?['dietary_preference'] ?? 'None';
+    final String phone = userData?.phone ?? _profile?['phone'] ?? 'No phone number';
+    
+    // Allergies logic
+    List<String> allergies = [];
+    if (userData != null) {
+      allergies = userData.allergies;
+    } else if (_profile != null && _profile!['allergies'] != null) {
+      allergies = List<String>.from(_profile!['allergies']);
+    }
+
+    // BMI logic
+    double bmi = 0;
+    if (userData != null) {
+      bmi = userData.bmi;
+    } else if (height > 0) {
+      bmi = weight / ((height / 100) * (height / 100));
+    }
+
+    if (_isLoading && _profile == null && userData == null) {
       return Scaffold(
         backgroundColor: _bgCream,
         body: Center(child: CircularProgressIndicator(color: _leafGreen)),
@@ -186,21 +209,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 1. Header (Avatar + Name/Inputs)
-            _buildHeader(_leafGreen, _softBlack),
+            _buildHeader(_leafGreen, _softBlack, name, age),
             const SizedBox(height: 32),
 
             // 2. Health Stats Row (Weight, Height, BMI)
-            _buildStatsSection(_leafGreen, _sageSoft),
+            _buildStatsSection(_leafGreen, _sageSoft, weight, height, bmi),
             const SizedBox(height: 32),
 
             // 3. Dietary Info (Dynamic)
             _buildSectionTitle('Dietary Configuration'),
-            _buildDietarySection(_leafGreen, _bgCream),
+            _buildDietarySection(_leafGreen, _bgCream, dietary, allergies),
             const SizedBox(height: 32),
 
             // 4. Contact Info
             _buildSectionTitle('Contact Details'),
-            _buildContactSection(_softBlack),
+            _buildContactSection(_softBlack, phone),
             const SizedBox(height: 32),
           ].animate(interval: 50.ms).fadeIn().slideY(begin: 0.1, end: 0),
         ),
@@ -222,7 +245,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildHeader(Color primary, Color text) {
+  Widget _buildHeader(Color primary, Color text, String name, String age) {
     return Row(
       children: [
         Container(
@@ -242,72 +265,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const SizedBox(width: 20),
         Expanded(
-          child: _isEditing
-              ? Column(
-                  children: [
-                    _buildEditField(_nameController, "Full Name"),
-                    const SizedBox(height: 8),
-                    _buildEditField(
-                      _ageController,
-                      "Age",
-                      type: TextInputType.number,
-                    ),
-                  ],
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _nameController.text.isEmpty
-                          ? 'Guest'
-                          : _nameController.text,
-                      style: GoogleFonts.outfit(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: text,
-                      ),
-                    ),
-                    Text(
-                      '${_ageController.text} Years',
-                      style: GoogleFonts.outfit(
-                        fontSize: 14,
-                        color: text.withOpacity(0.6),
-                      ),
-                    ),
-                  ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name,
+                style: GoogleFonts.outfit(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: text,
                 ),
+              ),
+              Text(
+                '$age Years',
+                style: GoogleFonts.outfit(
+                  fontSize: 14,
+                  color: text.withOpacity(0.6),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildStatsSection(Color primary, Color secondary) {
-    if (_isEditing) {
-      return Row(
-        children: [
-          Expanded(
-            child: _buildEditField(
-              _weightController,
-              "Weight (kg)",
-              type: TextInputType.number,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: _buildEditField(
-              _heightController,
-              "Height (cm)",
-              type: TextInputType.number,
-            ),
-          ),
-        ],
-      );
-    }
-
-    double h = double.tryParse(_heightController.text) ?? 0;
-    double w = double.tryParse(_weightController.text) ?? 0;
-    double bmi = (h > 0) ? w / ((h / 100) * (h / 100)) : 0;
-
+  // Refactor stats section to accept data instead of using controllers
+  Widget _buildStatsSection(Color primary, Color secondary, double weight, double height, double bmi) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -326,14 +310,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           _buildStatItem(
             'Weight',
-            '$w kg',
+            '$weight kg',
             Icons.monitor_weight_outlined,
             primary,
           ),
           Container(width: 1, height: 40, color: Colors.grey[200]),
           _buildStatItem(
             'Height',
-            '${h.toStringAsFixed(0)} cm',
+            '${height.toStringAsFixed(0)} cm',
             Icons.height,
             primary,
           ),
@@ -378,38 +362,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildDietarySection(Color primary, Color bg) {
-    if (_isEditing) {
-      return Column(
-        children: [
-          DropdownButtonFormField<String>(
-            value: _dietaryOptions.contains(_dietaryPreference)
-                ? _dietaryPreference
-                : 'None',
-            items: _dietaryOptions
-                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                .toList(),
-            onChanged: (val) => setState(() => _dietaryPreference = val!),
-            decoration: InputDecoration(
-              labelText: "Dietary Preference",
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              filled: true,
-              fillColor: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildEditField(_allergiesController, "Allergies (comma separated)"),
-        ],
-      );
-    }
-
-    final allergies = _allergiesController.text
-        .split(',')
-        .where((e) => e.isNotEmpty)
-        .toList();
-
+  Widget _buildDietarySection(Color primary, Color bg, String dietaryPreference, List<String> allergies) {
     return Column(
       children: [
         Container(
@@ -432,7 +385,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey),
                   ),
                   Text(
-                    _dietaryPreference,
+                    dietaryPreference,
                     style: GoogleFonts.outfit(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -516,14 +469,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildContactSection(Color text) {
-    if (_isEditing) {
-      return _buildEditField(
-        _phoneController,
-        "Phone Number",
-        type: TextInputType.phone,
-      );
-    }
+  Widget _buildContactSection(Color text, String phoneNumber) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -542,9 +488,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const Icon(Icons.phone_iphone_rounded, color: Colors.grey),
           const SizedBox(width: 16),
           Text(
-            _phoneController.text.isEmpty
-                ? 'No phone number'
-                : _phoneController.text,
+            phoneNumber,
             style: GoogleFonts.outfit(fontSize: 16, color: text),
           ),
         ],
@@ -552,24 +496,4 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildEditField(
-    TextEditingController controller,
-    String label, {
-    TextInputType type = TextInputType.text,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: type,
-      decoration: InputDecoration(
-        labelText: label,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
-        ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        filled: true,
-        fillColor: Colors.white,
-      ),
-    );
-  }
 }
