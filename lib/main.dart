@@ -3,7 +3,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'features/auth/presentation/pages/login_page.dart';
-import 'features/profile/presentation/pages/profile_screen.dart'; // Keep if needed for later, or remove if unused, but avoiding breaking imports elsewhere if any
 import 'features/navigation/bottom_navigation.dart';
 
 Future<void> main() async {

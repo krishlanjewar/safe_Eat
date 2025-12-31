@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:safeat/features/chatbot/data/perplexity_service.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -10,40 +12,45 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _textController = TextEditingController();
+  final PerplexityService _perplexityService = PerplexityService();
   final List<ChatMessage> _messages = [
     ChatMessage(
       text:
           "Hello! I am Snacky, your personal food assistant. How can I help you today?",
       isUser: false,
     ),
-    ChatMessage(text: "I'm looking for healthy snack options.", isUser: true),
-    ChatMessage(
-      text:
-          "Great! I can help with that. Are you looking for something sweet or savory?",
-      isUser: false,
-    ),
   ];
+  bool _isTyping = false;
 
-  void _handleSubmitted(String text) {
+  Future<void> _handleSubmitted(String text) async {
     if (text.isEmpty) return;
     _textController.clear();
     setState(() {
       _messages.add(ChatMessage(text: text, isUser: true));
-      // Simulate bot response
-      Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) {
-          setState(() {
-            _messages.add(
-              ChatMessage(
-                text:
-                    "That sounds delicious! Let me find some options for you.",
-                isUser: false,
-              ),
-            );
-          });
-        }
-      });
+      _isTyping = true;
     });
+
+    try {
+      final responseText = await _perplexityService.sendMessage(text);
+      if (mounted) {
+        setState(() {
+          _messages.add(ChatMessage(text: responseText, isUser: false));
+          _isTyping = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _messages.add(
+            ChatMessage(
+              text: "Sorry, I'm having trouble connecting right now.",
+              isUser: false,
+            ),
+          );
+          _isTyping = false;
+        });
+      }
+    }
   }
 
   @override
@@ -67,8 +74,21 @@ class _ChatScreenState extends State<ChatScreen> {
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(16.0),
-              itemCount: _messages.length,
+              itemCount: _messages.length + (_isTyping ? 1 : 0),
               itemBuilder: (context, index) {
+                if (index == _messages.length) {
+                  return const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  );
+                }
                 return _buildMessageBubble(_messages[index]);
               },
             ),
@@ -102,11 +122,13 @@ class _ChatScreenState extends State<ChatScreen> {
                 : const Radius.circular(16),
           ),
         ),
-        child: Text(
-          message.text,
-          style: GoogleFonts.outfit(
-            color: isUser ? Colors.white : Colors.black87,
-            fontSize: 16,
+        child: MarkdownBody(
+          data: message.text,
+          styleSheet: MarkdownStyleSheet(
+            p: GoogleFonts.outfit(
+              color: isUser ? Colors.white : Colors.black87,
+              fontSize: 16,
+            ),
           ),
         ),
       ),
