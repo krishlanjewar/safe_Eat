@@ -4,13 +4,13 @@ import 'package:safeat/features/home/presentation/pages/home_screen.dart';
 import 'package:safeat/features/chatbot/presentation/pages/chat_screen.dart';
 import 'package:safeat/features/search/presentation/pages/search_screen.dart';
 import 'package:safeat/features/scan/presentation/pages/scan_screen.dart';
-import 'package:safeat/features/search/presentation/pages/search_screen.dart';
-import 'package:safeat/features/chatbot/presentation/pages/chat_screen.dart';
 import 'package:safeat/features/pre_shopping/presentation/pages/pre_shopping_screen.dart';
-
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
+
+  static _MainLayoutState? of(BuildContext context) =>
+      context.findAncestorStateOfType<_MainLayoutState>();
 
   @override
   State<MainLayout> createState() => _MainLayoutState();
@@ -19,12 +19,18 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   int _currentIndex = 0;
 
+  void setIndex(int index) {
+    if (mounted) {
+      setState(() {
+        _currentIndex = index;
+      });
+    }
+  }
+
   final List<Widget> _screens = [
     const HomeScreen(),
     const SearchScreen(),
     const ScanScreen(),
-    const Center(child: Text("Pre-Shopping Screen Placeholder")),
-    const ChatScreen(),
     const PreShoppingScreen(),
     const ChatScreen(),
   ];
@@ -48,14 +54,14 @@ class _MainLayoutState extends State<MainLayout> {
           onTap: (index) => setState(() => _currentIndex = index),
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF7B1FA2), // Purple 700 to match button
-          unselectedItemColor: Colors.grey[400],
+          selectedItemColor: const Color(0xFF10B981), // Emerald Green
+          unselectedItemColor: const Color(0xFF9CA3AF),
           selectedLabelStyle: GoogleFonts.outfit(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
           ),
           unselectedLabelStyle: GoogleFonts.outfit(
-            fontSize: 10,
+            fontSize: 12,
             fontWeight: FontWeight.w500,
           ),
           items: const [

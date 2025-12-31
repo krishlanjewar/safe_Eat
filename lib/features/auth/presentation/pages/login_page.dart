@@ -65,14 +65,11 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     // Organic, Natural Theme Colors
-    const Color bgCream = Color(0xFFF7F5F0);
-    const Color leafGreen = Color(0xFF4A6741);
-    const Color earthSand = Color(0xFFC2B280);
-    const Color softBlack = Color(0xFF2D3436);
-    const Color sageLight = Color(0xFF8FA88A);
+    const Color organicGreen = Color(0xFF10B981);
+    const Color softBlack = Color(0xFF1A1C1E);
 
     return Scaffold(
-      backgroundColor: bgCream,
+      backgroundColor: const Color(0xFFF9FBF9),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -84,12 +81,12 @@ class _LoginPageState extends State<LoginPage> {
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
-                      color: leafGreen.withOpacity(0.1),
+                      color: organicGreen.withOpacity(0.05),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
                       Icons.eco_rounded,
-                      color: leafGreen,
+                      color: organicGreen,
                       size: 50,
                     ),
                   )
@@ -129,16 +126,16 @@ class _LoginPageState extends State<LoginPage> {
               Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: leafGreen.withOpacity(0.05),
+                          color: Colors.black.withOpacity(0.03),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
                       ],
                     ),
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(32),
                     child: Column(
                       children: [
                         // Email Field
@@ -150,16 +147,16 @@ class _LoginPageState extends State<LoginPage> {
                             labelStyle: TextStyle(
                               color: softBlack.withOpacity(0.5),
                             ),
-                            prefixIcon: Icon(
+                            prefixIcon: const Icon(
                               Icons.email_outlined,
-                              color: leafGreen,
+                              color: organicGreen,
                             ),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(16),
                               borderSide: BorderSide.none,
                             ),
                             filled: true,
-                            fillColor: bgCream,
+                            fillColor: const Color(0xFFF9FBF9),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -172,16 +169,16 @@ class _LoginPageState extends State<LoginPage> {
                             labelStyle: TextStyle(
                               color: softBlack.withOpacity(0.5),
                             ),
-                            prefixIcon: Icon(
+                            prefixIcon: const Icon(
                               Icons.lock_outline,
-                              color: leafGreen,
+                              color: organicGreen,
                             ),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(16),
                               borderSide: BorderSide.none,
                             ),
                             filled: true,
-                            fillColor: bgCream,
+                            fillColor: const Color(0xFFF9FBF9),
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -193,11 +190,11 @@ class _LoginPageState extends State<LoginPage> {
                           child: ElevatedButton(
                             onPressed: _isLoading ? null : _handleAuth,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: leafGreen,
+                              backgroundColor: organicGreen,
                               foregroundColor: Colors.white,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(16),
                               ),
                             ),
                             child: _isLoading
@@ -245,7 +242,7 @@ class _LoginPageState extends State<LoginPage> {
                       TextSpan(
                         text: "Sign Up",
                         style: TextStyle(
-                          color: leafGreen,
+                          color: organicGreen,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

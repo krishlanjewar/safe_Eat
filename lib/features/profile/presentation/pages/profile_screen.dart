@@ -13,10 +13,9 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   // Theme Colors
-  final Color _bgCream = const Color(0xFFF7F5F0);
-  final Color _leafGreen = const Color(0xFF4A6741);
-  final Color _sageSoft = const Color(0xFF8FA88A);
-  final Color _softBlack = const Color(0xFF2D3436);
+  final Color _bgOrganic = const Color(0xFFF9FBF9);
+  final Color _organicGreen = const Color(0xFF10B981);
+  final Color _softBlack = const Color(0xFF1A1C1E);
 
   bool _isLoading = true;
   bool _isEditing = false; // Toggle for Edit Mode
@@ -40,6 +39,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     'Paleo',
   ];
 
+  String _gender = 'Male';
+  final List<String> _genderOptions = ['Male', 'Female', 'Other'];
+
   Map<String, dynamic>? _profile;
 
   @override
@@ -52,23 +54,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
-        final data = await Supabase.instance.client
+        final response = await Supabase.instance.client
             .from('profiles')
             .select()
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
         if (mounted) {
-          setState(() {
-            _profile = data;
-            _isLoading = false;
-            _populateControllers();
-          });
+          if (response == null) {
+            // No profile found - let's switch to edit mode and prepopulate email
+            setState(() {
+              _profile = {};
+              _isLoading = false;
+              _isEditing = true; // Force edit mode to create profile
+            });
+          } else {
+            setState(() {
+              _profile = response;
+              _isLoading = false;
+              _populateControllers();
+            });
+          }
         }
       }
     } catch (e) {
       debugPrint('Error fetching profile: $e');
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Profile Error: Please check your database connection.',
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -80,6 +100,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _heightController.text = (_profile!['height'] ?? '').toString();
     _phoneController.text = _profile!['phone'] ?? '';
     _dietaryPreference = _profile!['dietary_preference'] ?? 'None';
+    _gender = _profile!['gender'] ?? 'Male';
 
     final allergies = _profile!['allergies'] as List<dynamic>?;
     _allergiesController.text = allergies?.join(', ') ?? '';
@@ -92,23 +113,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (user == null) return;
 
       final updates = {
+        'id': user.id, // Ensure ID is included for upsert
         'full_name': _nameController.text.trim(),
         'age': int.tryParse(_ageController.text) ?? 0,
         'weight': double.tryParse(_weightController.text) ?? 0.0,
         'height': double.tryParse(_heightController.text) ?? 0.0,
         'phone': _phoneController.text.trim(),
         'dietary_preference': _dietaryPreference,
+        'gender': _gender,
         'allergies': _allergiesController.text
             .split(',')
             .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
             .toList(),
         'updated_at': DateTime.now().toIso8601String(),
       };
 
-      await Supabase.instance.client
-          .from('profiles')
-          .update(updates)
-          .eq('id', user.id);
+      await Supabase.instance.client.from('profiles').upsert(updates);
 
       // Refresh data
       await _fetchProfile();
@@ -137,13 +158,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     if (_isLoading && _profile == null) {
       return Scaffold(
-        backgroundColor: _bgCream,
-        body: Center(child: CircularProgressIndicator(color: _leafGreen)),
+        backgroundColor: _bgOrganic,
+        body: Center(child: CircularProgressIndicator(color: _organicGreen)),
       );
     }
 
     return Scaffold(
-      backgroundColor: _bgCream,
+      backgroundColor: _bgOrganic,
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new, color: _softBlack),
@@ -161,7 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           if (_isEditing)
             IconButton(
-              icon: Icon(Icons.save, color: _leafGreen),
+              icon: Icon(Icons.save, color: _organicGreen),
               onPressed: _saveProfile,
             )
           else
@@ -172,12 +193,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (!_isEditing)
             IconButton(
               icon: Icon(Icons.logout, color: Colors.red[300]),
-              onPressed: () {
-                Supabase.instance.client.auth.signOut();
-                LoginPage();
-                Navigator.of(
-                  context,
-                ).pushNamedAndRemoveUntil('/', (route) => false);
+              onPressed: () async {
+                await Supabase.instance.client.auth.signOut();
+                if (mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const LoginPage()),
+                    (route) => false,
+                  );
+                }
               },
             ),
         ],
@@ -188,16 +211,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 1. Header (Avatar + Name/Inputs)
-            _buildHeader(_leafGreen, _softBlack),
+            _buildHeader(_organicGreen, _softBlack),
             const SizedBox(height: 32),
 
             // 2. Health Stats Row (Weight, Height, BMI)
-            _buildStatsSection(_leafGreen, _sageSoft),
+            _buildStatsSection(_organicGreen),
             const SizedBox(height: 32),
 
             // 3. Dietary Info (Dynamic)
             _buildSectionTitle('Dietary Configuration'),
-            _buildDietarySection(_leafGreen, _bgCream),
+            _buildDietarySection(_organicGreen, _bgOrganic),
             const SizedBox(height: 32),
 
             // 4. Contact Info
@@ -254,6 +277,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       "Age",
                       type: TextInputType.number,
                     ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: _genderOptions.contains(_gender)
+                          ? _gender
+                          : 'Male',
+                      items: _genderOptions
+                          .map(
+                            (e) => DropdownMenuItem(value: e, child: Text(e)),
+                          )
+                          .toList(),
+                      onChanged: (val) => setState(() => _gender = val!),
+                      decoration: InputDecoration(
+                        labelText: "Gender",
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                    ),
                   ],
                 )
               : Column(
@@ -270,7 +318,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     Text(
-                      '${_ageController.text} Years',
+                      '${_gender}, ${_ageController.text} Years',
                       style: GoogleFonts.outfit(
                         fontSize: 14,
                         color: text.withOpacity(0.6),
@@ -283,7 +331,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatsSection(Color primary, Color secondary) {
+  Widget _buildStatsSection(Color primary) {
     if (_isEditing) {
       return Row(
         children: [
@@ -315,6 +363,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.black.withOpacity(0.04)),
         boxShadow: [
           BoxShadow(
             color: primary.withOpacity(0.05),
@@ -568,7 +617,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           horizontal: 16,
           vertical: 12,
         ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
         filled: true,
         fillColor: Colors.white,
       ),

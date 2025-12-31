@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:safeat/features/chatbot/data/gemini_service.dart';
-// import 'package:safeat/features/chatbot/data/perplexity_service.dart';
+
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
 
@@ -13,7 +13,6 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _textController = TextEditingController();
   final GeminiService _geminiService = GeminiService();
-    // final PerplexityService _perplexityService = PerplexityService();
   final List<ChatMessage> _messages = [
     ChatMessage(
       text:
@@ -22,6 +21,7 @@ class _ChatScreenState extends State<ChatScreen> {
     ),
   ];
   bool _isTyping = false;
+  final ScrollController _scrollController = ScrollController();
 
   Future<void> _handleSubmitted(String text) async {
     if (text.isEmpty) return;
@@ -30,15 +30,16 @@ class _ChatScreenState extends State<ChatScreen> {
       _messages.add(ChatMessage(text: text, isUser: true));
       _isTyping = true;
     });
+    _scrollToBottom();
 
     try {
       final responseText = await _geminiService.sendMessage(text);
-      //  final responseText = await _perplexityService.sendMessage(text);
       if (mounted) {
         setState(() {
           _messages.add(ChatMessage(text: responseText, isUser: false));
           _isTyping = false;
         });
+        _scrollToBottom();
       }
     } catch (e) {
       if (mounted) {
@@ -51,53 +52,130 @@ class _ChatScreenState extends State<ChatScreen> {
           );
           _isTyping = false;
         });
+        _scrollToBottom();
       }
     }
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF9FBF9), // Very light organic background
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text(
-          "Chatbot",
-          style: GoogleFonts.outfit(
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
-          ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.psychology_outlined,
+                color: Color(0xFF10B981),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Snacky",
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 20,
+                    color: const Color(0xFF1A1C1E),
+                  ),
+                ),
+                Text(
+                  "Online Assistant",
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.w400,
+                    fontSize: 12,
+                    color: const Color(0xFF10B981),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
         backgroundColor: Colors.white,
-        elevation: 0.5,
-        iconTheme: const IconThemeData(color: Colors.black),
+        elevation: 0,
+        centerTitle: false,
       ),
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.all(16.0),
+              controller: _scrollController,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 20.0,
+              ),
               itemCount: _messages.length + (_isTyping ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == _messages.length) {
-                  return const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    ),
-                  );
+                  return _buildTypingIndicator();
                 }
                 return _buildMessageBubble(_messages[index]);
               },
             ),
           ),
-          const Divider(height: 1),
           _buildInputArea(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTypingIndicator() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 12,
+              height: 12,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              "Snacky is thinking...",
+              style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey[600]),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -106,68 +184,127 @@ class _ChatScreenState extends State<ChatScreen> {
     final isUser = message.isUser;
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4.0),
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-        decoration: BoxDecoration(
-          color: isUser
-              ? const Color(0xFF7C3AED)
-              : Colors.grey[200], // Purple for user, Grey for bot
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: isUser
-                ? const Radius.circular(16)
-                : const Radius.circular(0),
-            bottomRight: isUser
-                ? const Radius.circular(0)
-                : const Radius.circular(16),
-          ),
-        ),
-        child: MarkdownBody(
-          data: message.text,
-          styleSheet: MarkdownStyleSheet(
-            p: GoogleFonts.outfit(
-              color: isUser ? Colors.white : Colors.black87,
-              fontSize: 16,
+      child: Column(
+        crossAxisAlignment: isUser
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.8,
+            ),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 18.0,
+              vertical: 14.0,
+            ),
+            decoration: BoxDecoration(
+              color: isUser
+                  ? const Color(0xFF10B981) // Organic Green for user
+                  : Colors.white, // Pure white for Snacky
+              borderRadius: BorderRadius.only(
+                topLeft: const Radius.circular(24),
+                topRight: const Radius.circular(24),
+                bottomLeft: isUser
+                    ? const Radius.circular(24)
+                    : const Radius.circular(4),
+                bottomRight: isUser
+                    ? const Radius.circular(4)
+                    : const Radius.circular(24),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: MarkdownBody(
+              data: message.text,
+              styleSheet: MarkdownStyleSheet(
+                p: GoogleFonts.outfit(
+                  color: isUser ? Colors.white : const Color(0xFF2D3135),
+                  fontSize: 15,
+                  height: 1.5,
+                ),
+                tableBody: GoogleFonts.outfit(
+                  color: isUser ? Colors.white : const Color(0xFF2D3135),
+                  fontSize: 13,
+                ),
+                tableHead: GoogleFonts.outfit(
+                  fontWeight: FontWeight.bold,
+                  color: isUser ? Colors.white : const Color(0xFF2D3135),
+                ),
+                tableBorder: TableBorder.all(
+                  color: isUser ? Colors.white24 : Colors.grey[200]!,
+                  width: 1,
+                ),
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
 
   Widget _buildInputArea() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
       child: Row(
         children: [
           Expanded(
-            child: TextField(
-              controller: _textController,
-              decoration: InputDecoration(
-                hintText: "Type a message...",
-                hintStyle: GoogleFonts.outfit(color: Colors.grey[400]),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24.0),
-                  borderSide: BorderSide.none,
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F1), // Soft grey-green
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxHeight:
+                      150, // Limits height so it doesn't cover the whole screen
                 ),
-                filled: true,
-                fillColor: Colors.grey[100],
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 10.0,
+                child: Scrollbar(
+                  child: TextField(
+                    controller: _textController,
+                    maxLines: null,
+                    keyboardType: TextInputType.multiline,
+                    style: GoogleFonts.outfit(fontSize: 16),
+                    decoration: InputDecoration(
+                      hintText: "Ask Snacky about your food...",
+                      hintStyle: GoogleFonts.outfit(color: Colors.grey[500]),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 12.0,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              onSubmitted: _handleSubmitted,
             ),
           ),
           const SizedBox(width: 8),
-          IconButton(
-            icon: const Icon(Icons.send_rounded),
-            color: const Color(0xFF7C3AED),
-            onPressed: () => _handleSubmitted(_textController.text),
+          Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFF10B981),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.arrow_upward_rounded),
+              color: Colors.white,
+              onPressed: () => _handleSubmitted(_textController.text),
+            ),
           ),
         ],
       ),

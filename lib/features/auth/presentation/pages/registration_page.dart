@@ -116,12 +116,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
   @override
   Widget build(BuildContext context) {
     // Theme Colors (Consistent with Login)
-    const Color bgCream = Color(0xFFF7F5F0);
-    const Color leafGreen = Color(0xFF4A6741);
-    const Color softBlack = Color(0xFF2D3436);
+    const Color organicGreen = Color(0xFF10B981);
+    const Color softBlack = Color(0xFF1A1C1E);
 
     return Scaffold(
-      backgroundColor: bgCream,
+      backgroundColor: const Color(0xFFF9FBF9),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -267,11 +266,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handleRegistration,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: leafGreen,
+                      backgroundColor: organicGreen,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
                     child: _isLoading
@@ -309,7 +308,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
         style: GoogleFonts.outfit(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: const Color(0xFF8FA88A), // Sage Light
+          color: const Color(0xFF10B981),
           letterSpacing: 1.0,
         ),
       ),
@@ -338,10 +337,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        labelStyle: TextStyle(color: const Color(0xFF2D3436).withOpacity(0.5)),
-        prefixIcon: Icon(icon, color: const Color(0xFF4A6741)),
+        labelStyle: TextStyle(color: const Color(0xFF1A1C1E).withOpacity(0.5)),
+        prefixIcon: Icon(icon, color: const Color(0xFF10B981)),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
         filled: true,
@@ -365,10 +364,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
       onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: const Color(0xFF2D3436).withOpacity(0.5)),
-        prefixIcon: Icon(icon, color: const Color(0xFF4A6741)),
+        labelStyle: TextStyle(color: const Color(0xFF1A1C1E).withOpacity(0.5)),
+        prefixIcon: Icon(icon, color: const Color(0xFF10B981)),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
         filled: true,

@@ -11,7 +11,7 @@ class ProductDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF9FBF9),
       body: CustomScrollView(
         slivers: [
           _buildAppBar(context),

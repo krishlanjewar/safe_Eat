@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:safeat/features/profile/presentation/pages/profile_screen.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:safeat/features/navigation/bottom_navigation.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,6 +15,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _userName = 'Friend';
   bool _isLoading = true;
+  String _selectedLanguage = 'English';
 
   @override
   void initState() {
@@ -47,20 +49,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Natural / Organic Theme
-    // const Color bgCream = Color(0xFFF7F5F0);
-    const Color leafGreen = Color(0xFF4A6741);
-    const Color sageLight = Color(0xFF8FA88A);
+    const Color organicGreen = Color(0xFF10B981);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF9FBF9),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: leafGreen))
+          ? const Center(child: CircularProgressIndicator(color: organicGreen))
           : SingleChildScrollView(
               child: Column(
                 children: [
                   // 1. Header Section (Gradient Background)
-                  _buildHeader(leafGreen, sageLight),
+                  _buildHeader(organicGreen, const Color(0xFF059669)),
 
                   // 2. Main Content
                   Padding(
@@ -85,22 +84,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         const SizedBox(height: 24),
 
-                        // Tia Banner (Prominent AI Feature)
-                        _buildTiaBanner(leafGreen),
+                        // Snacky Banner (Prominent AI Feature)
+                        _buildSnackyBanner(organicGreen),
 
                         const SizedBox(height: 24),
 
                         // Weekly Healthy Picks
                         _buildSectionHeader('Weekly Healthy Picks'),
                         const SizedBox(height: 16),
-                        _buildHealthyPicksList(leafGreen),
+                        _buildHealthyPicksList(organicGreen),
 
                         const SizedBox(height: 24),
 
                         // Latest News
                         _buildSectionHeader('Latest News'),
                         const SizedBox(height: 16),
-                        _buildNewsCard(leafGreen),
+                        _buildNewsCard(organicGreen),
 
                         const SizedBox(height: 100), // Bottom padding
                       ],
@@ -187,21 +186,27 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      Icon(Icons.search, color: startColor),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Search healthy foods...',
-                        style: GoogleFonts.outfit(color: Colors.grey[400]),
+                  child: InkWell(
+                    onTap: () => MainLayout.of(context)?.setIndex(1),
+                    borderRadius: BorderRadius.circular(25),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          Icon(Icons.search, color: startColor),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Search healthy foods...',
+                            style: GoogleFonts.outfit(color: Colors.grey[400]),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 12),
-              _buildVegToggle(),
+              _buildLanguageSelector(),
             ],
           ).animate().fadeIn(delay: 400.ms).slideX(begin: 0.1, end: 0),
         ],
@@ -225,42 +230,69 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: const CircleAvatar(
           radius: 24,
-          backgroundColor: Color(0xFFE0E7FF),
+          backgroundColor: Color(0xFFD1FAE5),
           // Placeholder for user image or icon
-          child: Icon(Icons.person, color: Color(0xFF4A6741)),
+          child: Icon(Icons.person, color: Color(0xFF10B981)),
         ),
       ),
     );
   }
 
-  Widget _buildVegToggle() {
+  Widget _buildLanguageSelector() {
     return Column(
       children: [
         Text(
-          'VEG',
+          'LANG',
           style: GoogleFonts.outfit(
             color: Colors.white,
             fontSize: 10,
             fontWeight: FontWeight.bold,
           ),
         ),
-        Container(
-          width: 44,
-          height: 24,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Stack(
-            children: const [
-              Align(
-                alignment: Alignment.centerRight, // Toggled state example
-                child: Padding(
-                  padding: EdgeInsets.only(right: 4),
-                  child: Icon(Icons.circle, color: Colors.green, size: 18),
+        PopupMenuButton<String>(
+          initialValue: _selectedLanguage,
+          offset: const Offset(0, 30),
+          onSelected: (String value) {
+            setState(() {
+              _selectedLanguage = value;
+            });
+            // TODO: Implement actual localization switch logic
+          },
+          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+            PopupMenuItem<String>(
+              value: 'English',
+              child: Text('English', style: GoogleFonts.outfit()),
+            ),
+            PopupMenuItem<String>(
+              value: 'Hindi',
+              child: Text('Hindi', style: GoogleFonts.outfit()),
+            ),
+            PopupMenuItem<String>(
+              value: 'Asomiya',
+              child: Text('Asomiya', style: GoogleFonts.outfit()),
+            ),
+          ],
+          child: Container(
+            width: 44,
+            height: 24,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Text(
+                _selectedLanguage == 'English'
+                    ? 'EN'
+                    : _selectedLanguage == 'Hindi'
+                    ? 'HI'
+                    : 'AS',
+                style: GoogleFonts.outfit(
+                  color: const Color(0xFF10B981),
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ],
@@ -271,19 +303,19 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0FDF4),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFBBF7D0)),
+        color: const Color(0xFF10B981).withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF10B981).withOpacity(0.1)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.eco, size: 20, color: Color(0xFF15803D)),
+          const Icon(Icons.eco, size: 20, color: Color(0xFF10B981)),
           const SizedBox(width: 8),
           Text(
-            'Your nutrition journey starts now.',
+            'Your natural journey starts here.',
             style: GoogleFonts.outfit(
-              color: const Color(0xFF15803D),
+              color: const Color(0xFF10B981),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -306,11 +338,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         if (actionText != null)
           TextButton(
-            onPressed: () {},
+            onPressed: () => MainLayout.of(context)?.setIndex(1),
             child: Text(
               actionText,
               style: GoogleFonts.outfit(
-                color: const Color(0xFF4A6741),
+                color: const Color(0xFF10B981),
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
               ),
@@ -354,25 +386,29 @@ class _HomeScreenState extends State<HomeScreen> {
           final cat = categories[index];
           return Container(
             width: 80,
-            decoration: BoxDecoration(
-              color: cat['color'] as Color, // Light pastel background
+            child: InkWell(
+              onTap: () => MainLayout.of(context)?.setIndex(1),
               borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(cat['icon'] as IconData, color: Colors.black54, size: 30),
-                const SizedBox(height: 8),
-                Text(
-                  cat['name'] as String,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.outfit(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF374151),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    cat['icon'] as IconData,
+                    color: Colors.black54,
+                    size: 30,
                   ),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  Text(
+                    cat['name'] as String,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF374151),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -380,13 +416,20 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildTiaBanner(Color primaryColor) {
+  Widget _buildSnackyBanner(Color primaryColor) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: primaryColor.withOpacity(0.1), // Light green bg
+        color: Colors.white,
         borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -395,16 +438,17 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'ASK TIA',
-                  style: GoogleFonts.bebasNeue(
-                    fontSize: 28,
+                  'CHAT WITH SNACKY',
+                  style: GoogleFonts.outfit(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
                     color: primaryColor,
-                    letterSpacing: 1,
+                    letterSpacing: 0.5,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Unsure about a product? Scan or chat with TIA to verify ingredients instantly.',
+                  'Not sure about a product? Ask Snacky for an instant organic analysis.',
                   style: GoogleFonts.outfit(
                     color: const Color(0xFF4B5563),
                     fontSize: 14,
@@ -412,9 +456,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () {
-                    // Navigate to Chat
-                  },
+                  onPressed: () => MainLayout.of(context)?.setIndex(4),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryColor,
                     foregroundColor: Colors.white,
@@ -427,16 +469,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       vertical: 12,
                     ),
                   ),
-                  child: const Text('Start Chat'),
+                  child: const Text('Start Now'),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 16),
           Icon(
-            Icons.smart_toy_outlined,
-            size: 80,
-            color: primaryColor.withOpacity(0.4),
+            Icons.psychology_outlined,
+            size: 60,
+            color: primaryColor.withOpacity(0.2),
           ),
         ],
       ),
