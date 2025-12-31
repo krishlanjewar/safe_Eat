@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:safeat/features/auth/presentation/pages/login_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
@@ -196,6 +197,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: Icon(Icons.logout, color: Colors.red[300]),
               onPressed: () {
                 Supabase.instance.client.auth.signOut();
+                LoginPage();
                 Navigator.of(
                   context,
                 ).pushNamedAndRemoveUntil('/', (route) => false);
