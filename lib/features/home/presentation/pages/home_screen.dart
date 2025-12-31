@@ -1,68 +1,114 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:safeat/features/profile/presentation/pages/profile_screen.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String _userName = 'Friend';
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
+  Future<void> _fetchUserData() async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        final data = await Supabase.instance.client
+            .from('profiles')
+            .select('full_name')
+            .eq('id', user.id)
+            .single();
+
+        if (mounted) {
+          setState(() {
+            _userName =
+                (data['full_name'] as String?)?.split(' ').first ?? 'Friend';
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching user name: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Colors extracted from image
-    final purpleGradientStart = const Color(0xFF9333EA); // Vibrant Purple
-    final purpleGradientEnd = const Color(0xFF7C3AED); // Deep Purple
-    final sectionTitleColor = const Color(0xFF1F2937);
+    // Natural / Organic Theme
+    // const Color bgCream = Color(0xFFF7F5F0);
+    const Color leafGreen = Color(0xFF4A6741);
+    const Color sageLight = Color(0xFF8FA88A);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // 1. Header Section (Gradient Background)
-            _buildHeader(purpleGradientStart, purpleGradientEnd),
-
-            // 2. Main Content
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      backgroundColor: Colors.white,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: leafGreen))
+          : SingleChildScrollView(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 16),
+                  // 1. Header Section (Gradient Background)
+                  _buildHeader(leafGreen, sageLight),
 
-                  // Trial Banner
-                  _buildTrialBanner(),
+                  // 2. Main Content
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 16),
 
-                  const SizedBox(height: 24),
+                        // Trial Banner (or Welcome Banner)
+                        _buildWelcomeBanner(),
 
-                  // Top Categories
-                  _buildSectionHeader('Top Categories', actionText: 'View All'),
-                  const SizedBox(height: 16),
-                  _buildCategoriesGrid(),
+                        const SizedBox(height: 24),
 
-                  const SizedBox(height: 24),
+                        // Top Categories
+                        _buildSectionHeader(
+                          'Top Categories',
+                          actionText: 'View All',
+                        ),
+                        const SizedBox(height: 16),
+                        _buildCategoriesGrid(),
 
-                  // Tia Banner (Big Purple Card)
-                  _buildTiaBanner(),
+                        const SizedBox(height: 24),
 
-                  const SizedBox(height: 24),
+                        // Tia Banner (Prominent AI Feature)
+                        _buildTiaBanner(leafGreen),
 
-                  // Weekly Healthy Picks
-                  _buildSectionHeader('Weekly Healthy Picks'),
-                  const SizedBox(height: 16),
-                  _buildHealthyPicksList(),
+                        const SizedBox(height: 24),
 
-                  const SizedBox(height: 24),
+                        // Weekly Healthy Picks
+                        _buildSectionHeader('Weekly Healthy Picks'),
+                        const SizedBox(height: 16),
+                        _buildHealthyPicksList(leafGreen),
 
-                  // Latest News (Based on Image 2)
-                  _buildSectionHeader('Latest News'),
-                  const SizedBox(height: 16),
-                  _buildNewsCard(),
+                        const SizedBox(height: 24),
 
-                  const SizedBox(height: 100), // Bottom padding
+                        // Latest News
+                        _buildSectionHeader('Latest News'),
+                        const SizedBox(height: 16),
+                        _buildNewsCard(leafGreen),
+
+                        const SizedBox(height: 100), // Bottom padding
+                      ],
+                    ).animate().fadeIn().slideY(begin: 0.1, end: 0),
+                  ),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -78,6 +124,13 @@ class HomeScreen extends StatelessWidget {
           bottomLeft: Radius.circular(30),
           bottomRight: Radius.circular(30),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: startColor.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
       child: Column(
@@ -93,21 +146,21 @@ class HomeScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Hi Competition,',
+                      'Hi $_userName,',
                       style: GoogleFonts.outfit(
                         color: Colors.white,
-                        fontSize: 24,
+                        fontSize: 28,
                         fontWeight: FontWeight.bold,
                       ),
-                    ),
+                    ).animate().fadeIn(),
                     const SizedBox(height: 4),
                     Text(
-                      'Ready to make a smart choice?',
+                      'Ready to eat healthy today?',
                       style: GoogleFonts.outfit(
                         color: Colors.white.withOpacity(0.9),
-                        fontSize: 14,
+                        fontSize: 16,
                       ),
-                    ),
+                    ).animate().fadeIn(delay: 200.ms),
                   ],
                 ),
               ),
@@ -126,14 +179,21 @@ class HomeScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(25),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     children: [
-                      const Icon(Icons.search, color: Colors.grey),
+                      Icon(Icons.search, color: startColor),
                       const SizedBox(width: 8),
                       Text(
-                        'Search to find what fits you',
+                        'Search healthy foods...',
                         style: GoogleFonts.outfit(color: Colors.grey[400]),
                       ),
                     ],
@@ -143,70 +203,33 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(width: 12),
               _buildVegToggle(),
             ],
-          ),
+          ).animate().fadeIn(delay: 400.ms).slideX(begin: 0.1, end: 0),
         ],
       ),
     );
   }
 
   Widget _buildAvatarBadge() {
-    return Column(
-      children: [
-        Stack(
-          alignment: Alignment.topRight,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(2),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: const CircleAvatar(
-                radius: 24,
-                backgroundColor: Color(0xFFE0E7FF),
-                child: Icon(Icons.person, color: Color(0xFF4338CA)),
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'Trial',
-                style: GoogleFonts.outfit(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF7C3AED),
-                ),
-              ),
-            ),
-          ],
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(2),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
         ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "10",
-                style: GoogleFonts.outfit(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(width: 4),
-              const Icon(Icons.monetization_on, size: 14, color: Colors.amber),
-            ],
-          ),
+        child: const CircleAvatar(
+          radius: 24,
+          backgroundColor: Color(0xFFE0E7FF),
+          // Placeholder for user image or icon
+          child: Icon(Icons.person, color: Color(0xFF4A6741)),
         ),
-      ],
+      ),
     );
   }
 
@@ -229,15 +252,14 @@ class HomeScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Stack(
-            children: [
-              const Align(
-                alignment: Alignment.centerLeft,
+            children: const [
+              Align(
+                alignment: Alignment.centerRight, // Toggled state example
                 child: Padding(
-                  padding: EdgeInsets.only(left: 4),
+                  padding: EdgeInsets.only(right: 4),
                   child: Icon(Icons.circle, color: Colors.green, size: 18),
                 ),
               ),
-              // Simulated toggle thumb
             ],
           ),
         ),
@@ -245,22 +267,28 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTrialBanner() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Icon(Icons.auto_awesome, size: 16, color: Color(0xFF7C3AED)),
-        const SizedBox(width: 8),
-        Text(
-          'Your Free Trial Ends In 3 Days',
-          style: GoogleFonts.outfit(
-            color: const Color(0xFF4B5563),
-            fontWeight: FontWeight.w600,
+  Widget _buildWelcomeBanner() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFBBF7D0)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.eco, size: 20, color: Color(0xFF15803D)),
+          const SizedBox(width: 8),
+          Text(
+            'Your nutrition journey starts now.',
+            style: GoogleFonts.outfit(
+              color: const Color(0xFF15803D),
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-        const SizedBox(width: 8),
-        const Icon(Icons.auto_awesome, size: 16, color: Color(0xFF7C3AED)),
-      ],
+        ],
+      ),
     );
   }
 
@@ -271,15 +299,22 @@ class HomeScreen extends StatelessWidget {
         Text(
           title,
           style: GoogleFonts.outfit(
-            fontSize: 18,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: const Color(0xFF111827),
+            color: const Color(0xFF2D3436), // Soft black
           ),
         ),
         if (actionText != null)
-          Text(
-            actionText,
-            style: GoogleFonts.outfit(color: Colors.grey[500], fontSize: 14),
+          TextButton(
+            onPressed: () {},
+            child: Text(
+              actionText,
+              style: GoogleFonts.outfit(
+                color: const Color(0xFF4A6741),
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
       ],
     );
@@ -287,44 +322,53 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildCategoriesGrid() {
     final categories = [
-      {'name': 'Biscuits', 'color': Colors.blue[50]},
-      {'name': 'Breakfast & Spreads', 'color': Colors.red[50]},
-      {'name': 'Chocolates & Desserts', 'color': Colors.purple[50]},
-      {'name': 'Cold Drinks & Juices', 'color': Colors.orange[50]},
+      {
+        'name': 'Fruits',
+        'icon': Icons.apple_outlined,
+        'color': const Color(0xFFDCFCE7),
+      },
+      {
+        'name': 'Vegetables',
+        'icon': Icons.eco_outlined,
+        'color': const Color(0xFFF3E8FF),
+      },
+      {
+        'name': 'Dairy',
+        'icon': Icons.egg_outlined,
+        'color': const Color(0xFFFEF9C3),
+      },
+      {
+        'name': 'Grains',
+        'icon': Icons.grass_outlined,
+        'color': const Color(0xFFFFEDD5),
+      },
     ];
 
     return SizedBox(
-      height: 110,
+      height: 100,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, __) => const SizedBox(width: 16),
         itemBuilder: (context, index) {
           final cat = categories[index];
           return Container(
             width: 80,
+            decoration: BoxDecoration(
+              color: cat['color'] as Color, // Light pastel background
+              borderRadius: BorderRadius.circular(20),
+            ),
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  height: 70,
-                  width: 70,
-                  decoration: BoxDecoration(
-                    color: cat['color'] as Color,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  // Placeholder for product image
-                  child: const Icon(
-                    Icons.inventory_2_outlined,
-                    color: Colors.black26,
-                  ),
-                ),
+                Icon(cat['icon'] as IconData, color: Colors.black54, size: 30),
                 const SizedBox(height: 8),
                 Text(
                   cat['name'] as String,
                   textAlign: TextAlign.center,
-                  maxLines: 2,
                   style: GoogleFonts.outfit(
-                    fontSize: 11,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                     color: const Color(0xFF374151),
                   ),
                 ),
@@ -336,179 +380,175 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTiaBanner() {
+  Widget _buildTiaBanner(Color primaryColor) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFFF3E8FF), // Light purple bg
-        borderRadius: BorderRadius.circular(20),
-        image: const DecorationImage(
-          alignment: Alignment.centerRight,
-          // Placeholder for background texture
-          image: NetworkImage('https://placehold.co/1x1/png'),
-        ),
+        color: primaryColor.withOpacity(0.1), // Light green bg
+        borderRadius: BorderRadius.circular(24),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            'SAY HELLO TO TIA',
-            style: GoogleFonts.bebasNeue(
-              fontSize: 32,
-              color: const Color(0xFF4C1D95),
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: 200,
-            child: Text(
-              'Want more than what meets the eye? Try the improved TIA to check products and discover healthier swaps.',
-              style: GoogleFonts.outfit(
-                color: const Color(0xFF4B5563),
-                fontSize: 12,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6D28D9),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Text('Chat With TIA'),
-                SizedBox(width: 4),
-                Icon(Icons.chevron_right, size: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'ASK TIA',
+                  style: GoogleFonts.bebasNeue(
+                    fontSize: 28,
+                    color: primaryColor,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Unsure about a product? Scan or chat with TIA to verify ingredients instantly.',
+                  style: GoogleFonts.outfit(
+                    color: const Color(0xFF4B5563),
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    // Navigate to Chat
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
+                  child: const Text('Start Chat'),
+                ),
               ],
             ),
           ),
+          const SizedBox(width: 16),
+          Icon(
+            Icons.smart_toy_outlined,
+            size: 80,
+            color: primaryColor.withOpacity(0.4),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildHealthyPicksList() {
+  Widget _buildHealthyPicksList(Color primary) {
     return SizedBox(
-      height: 140,
+      height: 160,
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
-          _buildPickCard('Fruit & Nut Treats', const Color(0xFFF3F4F6)),
-          const SizedBox(width: 12),
-          _buildPickCard('Clean Comfort Soups', const Color(0xFFFFF7ED)),
-          const SizedBox(width: 12),
-          _buildPickCard('Protein Packed Bars', const Color(0xFFECFDF5)),
+          _buildPickCard('Organic Avocados', 'Rich in healthy fats', primary),
+          const SizedBox(width: 16),
+          _buildPickCard('Almond Milk', 'Dairy-free goodness', primary),
+          const SizedBox(width: 16),
+          _buildPickCard('Quinoa Pack', 'High protein grain', primary),
         ],
       ),
     );
   }
 
-  Widget _buildPickCard(String title, Color bg) {
+  Widget _buildPickCard(String title, String subtitle, Color color) {
     return Container(
       width: 140,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black.withOpacity(0.03)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            height: 60,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            alignment: Alignment.center,
+            child: Icon(Icons.local_florist_outlined, color: color),
+          ),
+          const Spacer(),
           Text(
             title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.outfit(
               fontWeight: FontWeight.bold,
               fontSize: 14,
               color: const Color(0xFF1F2937),
             ),
           ),
-          const Spacer(),
-          // Placeholder for product image
-          Container(
-            height: 60,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            alignment: Alignment.center,
-            child: const Icon(
-              Icons.image_not_supported_outlined,
-              color: Colors.black12,
-            ),
+          Text(
+            subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey[500]),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildNewsCard() {
+  Widget _buildNewsCard(Color primary) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.grey[200]!),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 80,
-            height: 80,
+            width: 70,
+            height: 70,
             decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(12),
+              color: primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(Icons.article_outlined, color: Colors.grey),
+            child: Icon(Icons.article, color: primary),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '"ORS" Term Banned from Food and Drink Labels in India',
+                  'Top 10 Superfoods for 2025',
                   style: GoogleFonts.outfit(
                     fontWeight: FontWeight.bold,
-                    fontSize: 13,
+                    fontSize: 14,
+                    color: const Color(0xFF2D3436),
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
-                  'India Today',
+                  'Discover the nutrient powerhouses taking over the market.',
                   style: GoogleFonts.outfit(
                     color: Colors.grey[500],
-                    fontSize: 11,
+                    fontSize: 12,
                   ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Text(
-                      'Read more',
-                      style: GoogleFonts.outfit(
-                        color: const Color(0xFF7C3AED),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const Icon(
-                      Icons.chevron_right,
-                      size: 16,
-                      color: Color(0xFF7C3AED),
-                    ),
-                  ],
                 ),
               ],
             ),
