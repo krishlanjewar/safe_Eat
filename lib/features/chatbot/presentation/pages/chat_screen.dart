@@ -11,9 +11,17 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _textController = TextEditingController();
   final List<ChatMessage> _messages = [
-    ChatMessage(text: "Hello! I am Snacky, your personal food assistant. How can I help you today?", isUser: false),
+    ChatMessage(
+      text:
+          "Hello! I am Snacky, your personal food assistant. How can I help you today?",
+      isUser: false,
+    ),
     ChatMessage(text: "I'm looking for healthy snack options.", isUser: true),
-    ChatMessage(text: "Great! I can help with that. Are you looking for something sweet or savory?", isUser: false),
+    ChatMessage(
+      text:
+          "Great! I can help with that. Are you looking for something sweet or savory?",
+      isUser: false,
+    ),
   ];
 
   void _handleSubmitted(String text) {
@@ -25,7 +33,13 @@ class _ChatScreenState extends State<ChatScreen> {
       Future.delayed(const Duration(seconds: 1), () {
         if (mounted) {
           setState(() {
-             _messages.add(ChatMessage(text: "That sounds delicious! Let me find some options for you.", isUser: false));
+            _messages.add(
+              ChatMessage(
+                text:
+                    "That sounds delicious! Let me find some options for you.",
+                isUser: false,
+              ),
+            );
           });
         }
       });
@@ -36,6 +50,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Text(
           "Chatbot",
           style: GoogleFonts.outfit(
@@ -73,12 +88,18 @@ class _ChatScreenState extends State<ChatScreen> {
         margin: const EdgeInsets.symmetric(vertical: 4.0),
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
         decoration: BoxDecoration(
-          color: isUser ? const Color(0xFF7B1FA2) : Colors.grey[200], // Purple 700 for user
+          color: isUser
+              ? const Color(0xFF7C3AED)
+              : Colors.grey[200], // Purple for user, Grey for bot
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
-            bottomLeft: isUser ? const Radius.circular(16) : const Radius.circular(0),
-            bottomRight: isUser ? const Radius.circular(0) : const Radius.circular(16),
+            bottomLeft: isUser
+                ? const Radius.circular(16)
+                : const Radius.circular(0),
+            bottomRight: isUser
+                ? const Radius.circular(0)
+                : const Radius.circular(16),
           ),
         ),
         child: Text(
@@ -110,7 +131,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
                 filled: true,
                 fillColor: Colors.grey[100],
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 10.0,
+                ),
               ),
               onSubmitted: _handleSubmitted,
             ),
