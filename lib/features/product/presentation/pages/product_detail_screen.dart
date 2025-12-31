@@ -3,47 +3,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:openfoodfacts/openfoodfacts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-import 'package:safeat/features/product/data/services/thesys_service.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
-
-class ProductDetailScreen extends StatefulWidget {
+class ProductDetailScreen extends StatelessWidget {
   final Product product;
 
   const ProductDetailScreen({super.key, required this.product});
-
-  @override
-  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
-}
-
-class _ProductDetailScreenState extends State<ProductDetailScreen> {
-  String? _aiInsight;
-  bool _loadingInsight = true;
-  final ThesysService _thesysService = ThesysService();
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchInsights();
-  }
-
-  Future<void> _fetchInsights() async {
-    // Construct a context string from product data
-    final p = widget.product;
-    final contextData =
-        "Product: ${p.productName}\nBrand: ${p.brands}\nIngredients: ${p.ingredientsText ?? 'N/A'}\nNutriscore: ${p.nutriscore}\nAdditives: ${p.additives?.names.join(', ') ?? 'None'}";
-
-    try {
-      final insight = await _thesysService.generateProductInsight(contextData);
-      if (mounted) {
-        setState(() {
-          _aiInsight = insight;
-          _loadingInsight = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _loadingInsight = false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,8 +20,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 _buildHeader(),
-                const SizedBox(height: 24),
-                _buildAIInsightsSection(),
                 const SizedBox(height: 24),
                 _buildScoresSection(),
                 const SizedBox(height: 24),
@@ -94,10 +55,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       ),
       flexibleSpace: FlexibleSpaceBar(
         background: Hero(
-          tag: widget.product.barcode ?? 'product_image',
-          child: widget.product.imageFrontUrl != null
+          tag: product.barcode ?? 'product_image',
+          child: product.imageFrontUrl != null
               ? Image.network(
-                  widget.product.imageFrontUrl!,
+                  product.imageFrontUrl!,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => const Center(
                     child: Icon(
@@ -123,7 +84,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _buildHeader() {
-    final product = widget.product;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -153,82 +113,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  Widget _buildAIInsightsSection() {
-    return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [const Color(0xFFF3E8FF), const Color(0xFFEaddFF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFD8B4FE), width: 1),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.purple.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.auto_awesome,
-                    color: const Color(0xFF7C3AED),
-                    size: 24,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    "Snacky's Insights",
-                    style: GoogleFonts.outfit(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF5B21B6),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _loadingInsight
-                  ? const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: CircularProgressIndicator(
-                          color: Color(0xFF7C3AED),
-                        ),
-                      ),
-                    )
-                  : MarkdownBody(
-                      data:
-                          _aiInsight ??
-                          "No specific insights available for this product.",
-                      styleSheet: MarkdownStyleSheet(
-                        p: GoogleFonts.outfit(
-                          fontSize: 14,
-                          color: const Color(0xFF4C1D95),
-                          height: 1.5,
-                        ),
-                        strong: GoogleFonts.outfit(
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF5B21B6),
-                        ),
-                      ),
-                    ),
-            ],
-          ),
-        )
-        .animate()
-        .fadeIn(duration: 800.ms, delay: 200.ms)
-        .moveY(begin: 20, end: 0);
-  }
-
   Widget _buildScoresSection() {
-    final product = widget.product;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
@@ -286,7 +171,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _buildIngredientsSection() {
-    final product = widget.product;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -321,7 +205,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     List<Widget> chips = [];
 
     // Safety handling for ingredientsAnalysisTags
-    final dynamic tags = widget.product.ingredientsAnalysisTags;
+    final dynamic tags = product.ingredientsAnalysisTags;
     List<String> safeTags = [];
 
     if (tags is List) {
@@ -361,7 +245,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _buildNutritionSection() {
-    final nutrients = widget.product.nutriments;
+    final nutrients = product.nutriments;
     if (nutrients == null) return const SizedBox.shrink();
 
     return Column(
@@ -433,7 +317,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _buildAllergensSection() {
-    final allergens = widget.product.allergens;
+    final allergens = product.allergens;
     if (allergens == null || allergens.ids == null || allergens.ids!.isEmpty)
       return const SizedBox.shrink();
 
