@@ -3,6 +3,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:safeat/features/navigation/bottom_navigation.dart';
+import 'package:provider/provider.dart';
+import 'package:safeat/models/user_model.dart';
+import 'package:safeat/providers/user_provider.dart';
 
 class RegistrationPage extends StatefulWidget {
   const RegistrationPage({super.key});
@@ -76,12 +79,27 @@ class _RegistrationPageState extends State<RegistrationPage> {
           'updated_at': DateTime.now().toIso8601String(),
         };
 
-        try {
-          await Supabase.instance.client.from('profiles').upsert(profileData);
         } catch (dbError) {
           debugPrint('Profile creation failed: $dbError');
-          // Proceeding anyway since Auth succeeded (Soft fail)
-          // Ideally, we should retry or show a specific error.
+        }
+
+        // 3. Update Local State (Provider) - Added for dynamic profile
+        if (mounted) {
+          final userModel = UserModel(
+            name: _nameController.text.trim(),
+            age: int.tryParse(_ageController.text) ?? 0,
+            weight: double.tryParse(_weightController.text) ?? 0.0,
+            height: double.tryParse(_heightController.text) ?? 0.0,
+            dietaryPreference: _dietaryPreference,
+            allergies: _allergiesController.text
+                .split(',')
+                .map((e) => e.trim())
+                .where((e) => e.isNotEmpty)
+                .toList(),
+            phone: _phoneController.text.trim(),
+          );
+
+          Provider.of<UserProvider>(context, listen: false).setUser(userModel);
         }
 
         if (mounted) {
