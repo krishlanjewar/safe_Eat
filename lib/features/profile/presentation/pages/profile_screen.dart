@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:safeat/features/auth/presentation/pages/login_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:safeat/core/localization/app_localizations.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -62,7 +63,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         if (mounted) {
           if (response == null) {
-            // No profile found - let's switch to edit mode and prepopulate email
+            // No profile found - let's switch to edit mode
             setState(() {
               _profile = {};
               _isLoading = false;
@@ -76,17 +77,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             });
           }
         }
+      } else {
+        // User is not logged in, but somehow reached this screen.
+        // Let's redirect to login.
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const LoginPage()),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Error fetching profile: $e');
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Profile Error: Please check your database connection.',
-            ),
-          ),
+          SnackBar(content: Text('Profile Error: ${e.toString()}')),
         );
       }
     }
@@ -137,14 +142,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         setState(() => _isEditing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully!')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.translate('profile_update_success'),
+            ),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error updating profile: $e'),
+            content: Text(
+              AppLocalizations.of(context)!.translate('profile_error_prefix') +
+                  e.toString(),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -173,7 +185,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          _isEditing ? 'Edit Profile' : 'My Safety Profile',
+          _isEditing
+              ? AppLocalizations.of(context)!.translate('profile_edit_title')
+              : AppLocalizations.of(context)!.translate('profile_title'),
           style: GoogleFonts.outfit(
             color: _softBlack,
             fontWeight: FontWeight.bold,
@@ -202,6 +216,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   );
                 }
               },
+              tooltip: AppLocalizations.of(
+                context,
+              )!.translate('profile_logout_button'),
             ),
         ],
       ),
@@ -219,12 +236,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 32),
 
             // 3. Dietary Info (Dynamic)
-            _buildSectionTitle('Dietary Configuration'),
+            _buildSectionTitle(
+              AppLocalizations.of(
+                context,
+              )!.translate('profile_section_dietary'),
+            ),
             _buildDietarySection(_organicGreen, _bgOrganic),
             const SizedBox(height: 32),
 
             // 4. Contact Info
-            _buildSectionTitle('Contact Details'),
+            _buildSectionTitle(
+              AppLocalizations.of(
+                context,
+              )!.translate('profile_section_contact'),
+            ),
             _buildContactSection(_softBlack),
             const SizedBox(height: 32),
           ].animate(interval: 50.ms).fadeIn().slideY(begin: 0.1, end: 0),
@@ -270,11 +295,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: _isEditing
               ? Column(
                   children: [
-                    _buildEditField(_nameController, "Full Name"),
+                    _buildEditField(
+                      _nameController,
+                      AppLocalizations.of(
+                        context,
+                      )!.translate('profile_field_name'),
+                    ),
                     const SizedBox(height: 8),
                     _buildEditField(
                       _ageController,
-                      "Age",
+                      AppLocalizations.of(
+                        context,
+                      )!.translate('profile_field_age'),
                       type: TextInputType.number,
                     ),
                     const SizedBox(height: 8),
@@ -289,7 +321,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           .toList(),
                       onChanged: (val) => setState(() => _gender = val!),
                       decoration: InputDecoration(
-                        labelText: "Gender",
+                        labelText: AppLocalizations.of(
+                          context,
+                        )!.translate('profile_field_gender'),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 8,
@@ -318,7 +352,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     Text(
-                      '${_gender}, ${_ageController.text} Years',
+                      '${_gender}, ${_ageController.text} ${AppLocalizations.of(context)!.translate('profile_field_age')}',
                       style: GoogleFonts.outfit(
                         fontSize: 14,
                         color: text.withOpacity(0.6),
@@ -338,7 +372,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Expanded(
             child: _buildEditField(
               _weightController,
-              "Weight (kg)",
+              AppLocalizations.of(context)!.translate('profile_field_weight'),
               type: TextInputType.number,
             ),
           ),
@@ -346,7 +380,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Expanded(
             child: _buildEditField(
               _heightController,
-              "Height (cm)",
+              AppLocalizations.of(context)!.translate('profile_field_height'),
               type: TextInputType.number,
             ),
           ),
@@ -442,7 +476,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 .toList(),
             onChanged: (val) => setState(() => _dietaryPreference = val!),
             decoration: InputDecoration(
-              labelText: "Dietary Preference",
+              labelText: AppLocalizations.of(
+                context,
+              )!.translate('profile_field_dietary'),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -451,7 +487,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildEditField(_allergiesController, "Allergies (comma separated)"),
+          _buildEditField(
+            _allergiesController,
+            AppLocalizations.of(context)!.translate('profile_field_allergies'),
+          ),
         ],
       );
     }
@@ -479,7 +518,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Dietary Preference',
+                    AppLocalizations.of(
+                      context,
+                    )!.translate('profile_field_dietary'),
                     style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey),
                   ),
                   Text(
@@ -516,7 +557,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Allergies',
+                      AppLocalizations.of(context)!
+                          .translate('profile_field_allergies')
+                          .split('(')
+                          .first
+                          .trim(),
                       style: GoogleFonts.outfit(
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFFB91C1C),
@@ -559,7 +604,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Icon(Icons.check_circle_outline, color: primary),
                 const SizedBox(width: 12),
-                Text('No known allergies.', style: TextStyle(color: primary)),
+                Text(
+                  AppLocalizations.of(
+                    context,
+                  )!.translate('profile_no_allergies'),
+                  style: TextStyle(color: primary),
+                ),
               ],
             ),
           ),
@@ -571,7 +621,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_isEditing) {
       return _buildEditField(
         _phoneController,
-        "Phone Number",
+        AppLocalizations.of(context)!.translate('profile_field_phone'),
         type: TextInputType.phone,
       );
     }
@@ -594,7 +644,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(width: 16),
           Text(
             _phoneController.text.isEmpty
-                ? 'No phone number'
+                ? AppLocalizations.of(context)!.translate('profile_no_phone')
                 : _phoneController.text,
             style: GoogleFonts.outfit(fontSize: 16, color: text),
           ),

@@ -3,6 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:safeat/features/chatbot/data/gemini_service.dart';
 import 'package:safeat/core/localization/app_localizations.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:safeat/features/auth/presentation/pages/login_page.dart';
 import 'package:safeat/main.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -89,6 +92,85 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = Supabase.instance.client.auth.currentUser;
+
+    if (user == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF9FBF9),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withOpacity(0.05),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.lock_person_rounded,
+                    color: Color(0xFF10B981),
+                    size: 64,
+                  ),
+                ).animate().scale(delay: 200.ms).fadeIn(),
+                const SizedBox(height: 32),
+                Text(
+                  "Snacky AI Needs You",
+                  style: GoogleFonts.outfit(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1A1C1E),
+                  ),
+                  textAlign: TextAlign.center,
+                ).animate().slideY(begin: 0.2, end: 0).fadeIn(),
+                const SizedBox(height: 12),
+                Text(
+                  "Log in to start your personalized healthy food analysis with Snacky AI.",
+                  style: GoogleFonts.outfit(
+                    fontSize: 16,
+                    color: const Color(0xFF1A1C1E).withOpacity(0.6),
+                  ),
+                  textAlign: TextAlign.center,
+                ).animate().slideY(begin: 0.2, end: 0, delay: 100.ms).fadeIn(),
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LoginPage(),
+                        ),
+                      );
+                      if (mounted)
+                        setState(() {}); // Refresh to check auth again
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: Text(
+                      AppLocalizations.of(context)!.translate('login_button'),
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ).animate().slideY(begin: 0.2, end: 0, delay: 200.ms).fadeIn(),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9FBF9), // Very light organic background
       appBar: AppBar(
@@ -134,6 +216,7 @@ class _ChatScreenState extends State<ChatScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
+        actions: [_buildLanguageSelector(const Color(0xFF10B981))],
       ),
       body: Column(
         children: [
@@ -327,6 +410,57 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLanguageSelector(Color organicGreen) {
+    String currentLang = localeNotifier.value.languageCode == 'hi'
+        ? 'HI'
+        : localeNotifier.value.languageCode == 'as'
+        ? 'AS'
+        : 'EN';
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 16.0),
+      child: PopupMenuButton<String>(
+        onSelected: (String value) {
+          if (value == 'EN') {
+            localeNotifier.value = const Locale('en');
+          } else if (value == 'HI') {
+            localeNotifier.value = const Locale('hi');
+          } else if (value == 'AS') {
+            localeNotifier.value = const Locale('as');
+          }
+          if (mounted) setState(() {});
+        },
+        itemBuilder: (context) => [
+          const PopupMenuItem(value: 'EN', child: Text('English')),
+          const PopupMenuItem(value: 'HI', child: Text('Hindi')),
+          const PopupMenuItem(value: 'AS', child: Text('Asomiya')),
+        ],
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: organicGreen.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.language, size: 16, color: organicGreen),
+              const SizedBox(width: 4),
+              Text(
+                currentLang,
+                style: GoogleFonts.outfit(
+                  color: organicGreen,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

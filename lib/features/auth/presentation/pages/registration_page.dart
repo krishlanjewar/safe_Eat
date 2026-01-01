@@ -93,9 +93,13 @@ class _RegistrationPageState extends State<RegistrationPage> {
               ),
             ),
           );
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const MainLayout()),
-          );
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop(true);
+          } else {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const MainLayout()),
+            );
+          }
         }
       }
     } on AuthException catch (e) {

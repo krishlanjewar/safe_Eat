@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:safeat/features/navigation/bottom_navigation.dart';
 import 'package:safeat/main.dart';
 import 'package:safeat/core/localization/app_localizations.dart';
+import 'package:safeat/features/auth/presentation/pages/login_page.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,10 +21,23 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   String _selectedLanguage = 'English';
 
+  late final StreamSubscription<AuthState> _authSubscription;
+
   @override
   void initState() {
     super.initState();
     _fetchUserData();
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((
+      data,
+    ) {
+      if (mounted) _fetchUserData();
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription.cancel();
+    super.dispose();
   }
 
   Future<void> _fetchUserData() async {
@@ -48,10 +63,22 @@ class _HomeScreenState extends State<HomeScreen> {
               ? 'Asomiya'
               : 'English';
         }
+      } else {
+        if (mounted) {
+          setState(() {
+            _userName = 'Friend';
+            _isLoading = false;
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error fetching user name: $e');
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _userName = 'Friend';
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -246,10 +273,18 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildAvatarBadge() {
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const ProfileScreen()),
-        );
+        final user = Supabase.instance.client.auth.currentUser;
+        if (user == null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginPage()),
+          );
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ProfileScreen()),
+          );
+        }
       },
       child: Container(
         padding: const EdgeInsets.all(2),

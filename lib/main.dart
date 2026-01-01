@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'features/auth/presentation/pages/login_page.dart';
 import 'features/navigation/bottom_navigation.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/localization/app_localizations.dart';
+import 'core/localization/locale_service.dart';
 
 // Global locale controller
 final ValueNotifier<Locale> localeNotifier = ValueNotifier(const Locale('en'));
@@ -22,17 +22,20 @@ Future<void> main() async {
     anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
   );
 
-  // Check for existing session
-  final session = Supabase.instance.client.auth.currentSession;
+  // Load saved locale
+  final savedLocale = await LocaleService.getLocale();
+  localeNotifier.value = savedLocale;
+
+  // Listen for locale changes and save them
+  localeNotifier.addListener(() {
+    LocaleService.saveLocale(localeNotifier.value);
+  });
 
   runApp(
     ValueListenableBuilder<Locale>(
       valueListenable: localeNotifier,
       builder: (context, locale, child) {
-        return MyApp(
-          home: session != null ? const MainLayout() : const LoginPage(),
-          locale: locale,
-        );
+        return MyApp(home: const MainLayout(), locale: locale);
       },
     ),
   );

@@ -6,6 +6,8 @@ import 'package:safeat/features/chatbot/presentation/pages/chat_screen.dart';
 import 'package:safeat/features/search/presentation/pages/search_screen.dart';
 import 'package:safeat/features/scan/presentation/pages/scan_screen.dart';
 import 'package:safeat/features/pre_shopping/presentation/pages/pre_shopping_screen.dart';
+import 'package:safeat/features/auth/presentation/pages/login_page.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -20,7 +22,25 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   int _currentIndex = 0;
 
-  void setIndex(int index) {
+  void setIndex(int index) async {
+    if (!mounted) return;
+
+    // Check auth for restricted tabs (Pantry = 3, Chat = 4)
+    final user = Supabase.instance.client.auth.currentUser;
+    if ((index == 3 || index == 4) && user == null) {
+      final loggedIn = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
+
+      if (loggedIn == true && mounted) {
+        setState(() {
+          _currentIndex = index;
+        });
+      }
+      return;
+    }
+
     if (mounted) {
       setState(() {
         _currentIndex = index;
@@ -52,7 +72,22 @@ class _MainLayoutState extends State<MainLayout> {
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
+          onTap: (index) async {
+            // Check auth for restricted tabs (Pantry = 3, Chat = 4)
+            final user = Supabase.instance.client.auth.currentUser;
+            if ((index == 3 || index == 4) && user == null) {
+              final loggedIn = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginPage()),
+              );
+
+              if (loggedIn == true && mounted) {
+                setState(() => _currentIndex = index);
+              }
+              return;
+            }
+            setState(() => _currentIndex = index);
+          },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
           selectedItemColor: const Color(0xFF10B981), // Emerald Green

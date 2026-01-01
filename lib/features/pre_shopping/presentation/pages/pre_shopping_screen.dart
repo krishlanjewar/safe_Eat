@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:safeat/features/auth/presentation/pages/login_page.dart';
+import 'package:safeat/core/localization/app_localizations.dart';
+import 'package:safeat/features/pre_shopping/data/cart_manager.dart';
+import 'package:safeat/features/pre_shopping/presentation/pages/cart_screen.dart';
 
 class PreShoppingScreen extends StatefulWidget {
   const PreShoppingScreen({super.key});
@@ -179,7 +185,18 @@ class _PreShoppingScreenState extends State<PreShoppingScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () {
+                    cartManager.addItem(item);
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("${item.name} added to shopping list"),
+                        backgroundColor: const Color(0xFF10B981),
+                        behavior: SnackBarBehavior.floating,
+                        duration: const Duration(seconds: 1),
+                      ),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF10B981),
                     shape: RoundedRectangleBorder(
@@ -232,27 +249,126 @@ class _PreShoppingScreenState extends State<PreShoppingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = Supabase.instance.client.auth.currentUser;
+
+    if (user == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF9FBF9),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withOpacity(0.05),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.shopping_basket_rounded,
+                    color: Color(0xFF10B981),
+                    size: 64,
+                  ),
+                ).animate().scale(delay: 200.ms).fadeIn(),
+                const SizedBox(height: 32),
+                Text(
+                  AppLocalizations.of(context)!.translate('pantry_title'),
+                  style: GoogleFonts.outfit(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1A1C1E),
+                  ),
+                  textAlign: TextAlign.center,
+                ).animate().slideY(begin: 0.2, end: 0).fadeIn(),
+                const SizedBox(height: 12),
+                Text(
+                  AppLocalizations.of(context)!.translate('pantry_desc'),
+                  style: GoogleFonts.outfit(
+                    fontSize: 16,
+                    color: const Color(0xFF1A1C1E).withOpacity(0.6),
+                  ),
+                  textAlign: TextAlign.center,
+                ).animate().slideY(begin: 0.2, end: 0, delay: 100.ms).fadeIn(),
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LoginPage(),
+                        ),
+                      );
+                      if (mounted)
+                        setState(() {}); // Refresh to check auth again
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: Text(
+                      AppLocalizations.of(context)!.translate('login_button'),
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ).animate().slideY(begin: 0.2, end: 0, delay: 200.ms).fadeIn(),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9FBF9),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          AppLocalizations.of(context)!.translate('pantry_title'),
+          style: GoogleFonts.outfit(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF1A1C1E),
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.shopping_cart_outlined,
+              color: Color(0xFF10B981),
+            ),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CartScreen()),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 8.0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Healthy Pantry",
-                    style: GoogleFonts.outfit(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF1A1C1E),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Build your shopping list with natural foods",
+                    AppLocalizations.of(context)!.translate('pantry_desc'),
                     style: GoogleFonts.outfit(
                       fontSize: 14,
                       color: Colors.grey[600],
@@ -371,22 +487,4 @@ class _PreShoppingScreenState extends State<PreShoppingScreen> {
       ),
     );
   }
-}
-
-class FoodItem {
-  final String name;
-  final IconData imageIcon;
-  final int calories;
-  final double protein;
-  final bool isHealthy;
-  final String description;
-
-  FoodItem({
-    required this.name,
-    required this.imageIcon,
-    required this.calories,
-    required this.protein,
-    required this.isHealthy,
-    required this.description,
-  });
 }

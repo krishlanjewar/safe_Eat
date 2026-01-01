@@ -40,9 +40,13 @@ class _LoginPageState extends State<LoginPage> {
           ),
         );
 
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const MainLayout()),
-        );
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop(true);
+        } else {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const MainLayout()),
+          );
+        }
       }
     } on AuthException catch (e) {
       if (mounted) {
@@ -246,13 +250,16 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 24),
 
               TextButton(
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  final registered = await Navigator.push<bool>(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const RegistrationPage(),
                     ),
                   );
+                  if (registered == true && mounted) {
+                    Navigator.pop(context, true);
+                  }
                 },
                 child: RichText(
                   text: TextSpan(
