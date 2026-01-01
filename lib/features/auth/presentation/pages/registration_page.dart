@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:safeat/features/navigation/bottom_navigation.dart';
+import 'package:safeat/core/localization/app_localizations.dart';
 
 class RegistrationPage extends StatefulWidget {
   const RegistrationPage({super.key});
@@ -86,7 +87,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Registration successful!')),
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context)!.translate('register_success'),
+              ),
+            ),
           );
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => const MainLayout()),
@@ -103,7 +108,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text(
+              AppLocalizations.of(context)!.translate('register_error_prefix') +
+                  e.toString(),
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -138,7 +146,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Join Safe Eat',
+                  AppLocalizations.of(context)!.translate('register_title'),
                   style: GoogleFonts.outfit(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
@@ -147,7 +155,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 ).animate().fadeIn().slideY(begin: 0.2, end: 0),
 
                 Text(
-                  'Let’s get to know your nutrition needs.',
+                  AppLocalizations.of(context)!.translate('register_subtitle'),
                   style: GoogleFonts.outfit(
                     fontSize: 16,
                     color: softBlack.withOpacity(0.6),
@@ -157,9 +165,15 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 const SizedBox(height: 32),
 
                 // -- Personal Info Section --
-                _buildSectionLabel('About You'),
+                _buildSectionLabel(
+                  AppLocalizations.of(
+                    context,
+                  )!.translate('register_section_about'),
+                ),
                 _buildTextField(
-                  label: 'Full Name',
+                  label: AppLocalizations.of(
+                    context,
+                  )!.translate('register_full_name'),
                   icon: Icons.person_outline,
                   controller: _nameController,
                 ),
@@ -168,7 +182,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   children: [
                     Expanded(
                       child: _buildTextField(
-                        label: 'Age',
+                        label: AppLocalizations.of(
+                          context,
+                        )!.translate('register_age'),
                         icon: Icons.calendar_today_outlined,
                         controller: _ageController,
                         inputType: TextInputType.number,
@@ -177,7 +193,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     const SizedBox(width: 16),
                     Expanded(
                       child: _buildDropdown(
-                        label: 'Gender',
+                        label: AppLocalizations.of(
+                          context,
+                        )!.translate('register_gender'),
                         value: _gender,
                         items: _genders,
                         onChanged: (val) => setState(() => _gender = val!),
@@ -191,7 +209,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   children: [
                     Expanded(
                       child: _buildTextField(
-                        label: 'Height (cm)',
+                        label: AppLocalizations.of(
+                          context,
+                        )!.translate('register_height'),
                         icon: Icons.height,
                         controller: _heightController,
                         inputType: const TextInputType.numberWithOptions(
@@ -202,7 +222,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     const SizedBox(width: 16),
                     Expanded(
                       child: _buildTextField(
-                        label: 'Weight (kg)',
+                        label: AppLocalizations.of(
+                          context,
+                        )!.translate('register_weight'),
                         icon: Icons.monitor_weight_outlined,
                         controller: _weightController,
                         inputType: const TextInputType.numberWithOptions(
@@ -216,9 +238,15 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 const SizedBox(height: 32),
 
                 // -- Nutrition Info Section --
-                _buildSectionLabel('Nutrition & Health'),
+                _buildSectionLabel(
+                  AppLocalizations.of(
+                    context,
+                  )!.translate('register_section_nutrition'),
+                ),
                 _buildDropdown(
-                  label: 'Dietary Preference',
+                  label: AppLocalizations.of(
+                    context,
+                  )!.translate('register_dietary'),
                   value: _dietaryPreference,
                   items: _dietaryOptions,
                   onChanged: (val) => setState(() => _dietaryPreference = val!),
@@ -226,32 +254,46 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(
-                  label: 'Allergies (comma separated)',
+                  label: AppLocalizations.of(
+                    context,
+                  )!.translate('register_allergies'),
                   icon: Icons.warning_amber_rounded,
                   controller: _allergiesController,
-                  hint: 'e.g. Peanuts, Shellfish',
+                  hint: AppLocalizations.of(
+                    context,
+                  )!.translate('register_allergies_hint'),
                 ),
 
                 const SizedBox(height: 32),
 
                 // -- Account Logic --
-                _buildSectionLabel('Account Security'),
+                _buildSectionLabel(
+                  AppLocalizations.of(
+                    context,
+                  )!.translate('register_section_security'),
+                ),
                 _buildTextField(
-                  label: 'Email Address',
+                  label: AppLocalizations.of(
+                    context,
+                  )!.translate('register_email'),
                   icon: Icons.email_outlined,
                   controller: _emailController,
                   inputType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(
-                  label: 'Phone Number',
+                  label: AppLocalizations.of(
+                    context,
+                  )!.translate('register_phone'),
                   icon: Icons.phone_outlined,
                   controller: _phoneController,
                   inputType: TextInputType.phone,
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(
-                  label: 'Password',
+                  label: AppLocalizations.of(
+                    context,
+                  )!.translate('register_password'),
                   icon: Icons.lock_outline,
                   controller: _passwordController,
                   isObscure: true,
@@ -282,9 +324,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
                               strokeWidth: 2,
                             ),
                           )
-                        : const Text(
-                            'Create Account',
-                            style: TextStyle(
+                        : Text(
+                            AppLocalizations.of(
+                              context,
+                            )!.translate('register_button'),
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -329,8 +373,13 @@ class _RegistrationPageState extends State<RegistrationPage> {
       obscureText: isObscure,
       validator: (val) {
         if (val == null || val.isEmpty) {
-          if (label == 'Allergies (comma separated)') return null; // Optional
-          return '$label is required';
+          if (label ==
+              AppLocalizations.of(context)!.translate('register_allergies')) {
+            return null; // Optional
+          }
+          return AppLocalizations.of(
+            context,
+          )!.translate('register_required', {'label': label});
         }
         return null;
       },

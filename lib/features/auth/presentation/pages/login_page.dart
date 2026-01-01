@@ -3,6 +3,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:safeat/features/navigation/bottom_navigation.dart';
+import 'package:safeat/core/localization/app_localizations.dart';
+import 'package:safeat/main.dart';
 import 'registration_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -30,9 +32,13 @@ class _LoginPageState extends State<LoginPage> {
       );
       // Navigate or show success
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Login successful!')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.translate('auth_success'),
+            ),
+          ),
+        );
 
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const MainLayout()),
@@ -48,7 +54,11 @@ class _LoginPageState extends State<LoginPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('An unexpected error occurred: $e'),
+            content: Text(
+              AppLocalizations.of(
+                context,
+              )!.translate('auth_error', {'error': e.toString()}),
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -70,6 +80,11 @@ class _LoginPageState extends State<LoginPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FBF9),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [_buildLanguageSelector(organicGreen)],
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -98,7 +113,7 @@ class _LoginPageState extends State<LoginPage> {
 
               // Title
               Text(
-                    'Safe Eat',
+                    AppLocalizations.of(context)!.translate('login_title'),
                     style: GoogleFonts.outfit(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -110,7 +125,7 @@ class _LoginPageState extends State<LoginPage> {
                   .slideY(begin: 0.3, end: 0),
 
               Text(
-                    'Eat healthy, live naturally.',
+                    AppLocalizations.of(context)!.translate('login_subtitle'),
                     style: GoogleFonts.outfit(
                       fontSize: 16,
                       color: softBlack.withOpacity(0.6),
@@ -143,7 +158,9 @@ class _LoginPageState extends State<LoginPage> {
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           decoration: InputDecoration(
-                            labelText: 'Email Address',
+                            labelText: AppLocalizations.of(
+                              context,
+                            )!.translate('login_email_hint'),
                             labelStyle: TextStyle(
                               color: softBlack.withOpacity(0.5),
                             ),
@@ -165,7 +182,9 @@ class _LoginPageState extends State<LoginPage> {
                           controller: _passwordController,
                           obscureText: true,
                           decoration: InputDecoration(
-                            labelText: 'Password',
+                            labelText: AppLocalizations.of(
+                              context,
+                            )!.translate('login_password_hint'),
                             labelStyle: TextStyle(
                               color: softBlack.withOpacity(0.5),
                             ),
@@ -206,9 +225,11 @@ class _LoginPageState extends State<LoginPage> {
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : const Text(
-                                    'Login',
-                                    style: TextStyle(
+                                : Text(
+                                    AppLocalizations.of(
+                                      context,
+                                    )!.translate('login_button'),
+                                    style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -224,7 +245,6 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 24),
 
-              // Toggle Sign Up / Login
               TextButton(
                 onPressed: () {
                   Navigator.push(
@@ -236,12 +256,16 @@ class _LoginPageState extends State<LoginPage> {
                 },
                 child: RichText(
                   text: TextSpan(
-                    text: "Don't have an account? ",
+                    text: AppLocalizations.of(
+                      context,
+                    )!.translate('login_no_account'),
                     style: TextStyle(color: softBlack.withOpacity(0.7)),
-                    children: const [
+                    children: [
                       TextSpan(
-                        text: "Sign Up",
-                        style: TextStyle(
+                        text: AppLocalizations.of(
+                          context,
+                        )!.translate('login_sign_up'),
+                        style: const TextStyle(
                           color: organicGreen,
                           fontWeight: FontWeight.bold,
                         ),
@@ -250,6 +274,56 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
               ).animate().fadeIn(duration: 600.ms, delay: 600.ms),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageSelector(Color organicGreen) {
+    String currentLang = localeNotifier.value.languageCode == 'hi'
+        ? 'HI'
+        : localeNotifier.value.languageCode == 'as'
+        ? 'AS'
+        : 'EN';
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 16.0),
+      child: PopupMenuButton<String>(
+        onSelected: (String value) {
+          if (value == 'EN') {
+            localeNotifier.value = const Locale('en');
+          } else if (value == 'HI') {
+            localeNotifier.value = const Locale('hi');
+          } else if (value == 'AS') {
+            localeNotifier.value = const Locale('as');
+          }
+        },
+        itemBuilder: (context) => [
+          const PopupMenuItem(value: 'EN', child: Text('English')),
+          const PopupMenuItem(value: 'HI', child: Text('Hindi')),
+          const PopupMenuItem(value: 'AS', child: Text('Asomiya')),
+        ],
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: organicGreen.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.language, size: 16, color: organicGreen),
+              const SizedBox(width: 4),
+              Text(
+                currentLang,
+                style: TextStyle(
+                  color: organicGreen,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
             ],
           ),
         ),
