@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:safeat/features/chatbot/data/gemini_service.dart';
+import 'package:safeat/core/localization/app_localizations.dart';
+import 'package:safeat/main.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -13,15 +15,27 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _textController = TextEditingController();
   final GeminiService _geminiService = GeminiService();
-  final List<ChatMessage> _messages = [
-    ChatMessage(
-      text:
-          "Hello! I am Snacky, your personal food assistant. How can I help you today?",
-      isUser: false,
-    ),
-  ];
+  final List<ChatMessage> _messages = [];
   bool _isTyping = false;
   final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize with localized welcome message
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _messages.add(
+            ChatMessage(
+              text: AppLocalizations.of(context)!.translate('chat_welcome'),
+              isUser: false,
+            ),
+          );
+        });
+      }
+    });
+  }
 
   Future<void> _handleSubmitted(String text) async {
     if (text.isEmpty) return;
@@ -33,7 +47,11 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToBottom();
 
     try {
-      final responseText = await _geminiService.sendMessage(text);
+      final languageCode = localeNotifier.value.languageCode;
+      final responseText = await _geminiService.sendMessage(
+        text,
+        languageCode: languageCode,
+      );
       if (mounted) {
         setState(() {
           _messages.add(ChatMessage(text: responseText, isUser: false));
@@ -46,7 +64,7 @@ class _ChatScreenState extends State<ChatScreen> {
         setState(() {
           _messages.add(
             ChatMessage(
-              text: "Sorry, I'm having trouble connecting right now.",
+              text: AppLocalizations.of(context)!.translate('chat_error'),
               isUser: false,
             ),
           );
@@ -102,7 +120,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
                 Text(
-                  "Online Assistant",
+                  AppLocalizations.of(context)!.translate('chat_snacky_status'),
                   style: GoogleFonts.outfit(
                     fontWeight: FontWeight.w400,
                     fontSize: 12,
@@ -171,7 +189,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             const SizedBox(width: 12),
             Text(
-              "Snacky is thinking...",
+              AppLocalizations.of(context)!.translate('chat_thinking'),
               style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey[600]),
             ),
           ],
@@ -281,7 +299,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     keyboardType: TextInputType.multiline,
                     style: GoogleFonts.outfit(fontSize: 16),
                     decoration: InputDecoration(
-                      hintText: "Ask Snacky about your food...",
+                      hintText: AppLocalizations.of(
+                        context,
+                      )!.translate('chat_placeholder'),
                       hintStyle: GoogleFonts.outfit(color: Colors.grey[500]),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(

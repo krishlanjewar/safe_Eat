@@ -4,6 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:safeat/features/profile/presentation/pages/profile_screen.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:safeat/features/navigation/bottom_navigation.dart';
+import 'package:safeat/main.dart';
+import 'package:safeat/core/localization/app_localizations.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -39,6 +41,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 (data['full_name'] as String?)?.split(' ').first ?? 'Friend';
             _isLoading = false;
           });
+          // Sync UI value with global locale if needed
+          _selectedLanguage = localeNotifier.value.languageCode == 'hi'
+              ? 'Hindi'
+              : localeNotifier.value.languageCode == 'as'
+              ? 'Asomiya'
+              : 'English';
         }
       }
     } catch (e) {
@@ -51,9 +59,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     const Color organicGreen = Color(0xFF10B981);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9FBF9),
-      body: _isLoading
+    return Container(
+      color: const Color(0xFFF9FBF9),
+      child: _isLoading
           ? const Center(child: CircularProgressIndicator(color: organicGreen))
           : SingleChildScrollView(
               child: Column(
@@ -76,8 +84,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         // Top Categories
                         _buildSectionHeader(
-                          'Top Categories',
-                          actionText: 'View All',
+                          AppLocalizations.of(
+                            context,
+                          )!.translate('home_top_categories'),
+                          actionText: AppLocalizations.of(
+                            context,
+                          )!.translate('home_view_all'),
                         ),
                         const SizedBox(height: 16),
                         _buildCategoriesGrid(),
@@ -90,7 +102,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 24),
 
                         // Weekly Healthy Picks
-                        _buildSectionHeader('Weekly Healthy Picks'),
+                        _buildSectionHeader(
+                          AppLocalizations.of(
+                            context,
+                          )!.translate('home_weekly_picks'),
+                          actionText: AppLocalizations.of(
+                            context,
+                          )!.translate('home_shop_now'),
+                        ),
                         const SizedBox(height: 16),
                         _buildHealthyPicksList(organicGreen),
 
@@ -145,7 +164,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Hi $_userName,',
+                      AppLocalizations.of(
+                        context,
+                      )!.translate('home_greeting', {'name': _userName}),
                       style: GoogleFonts.outfit(
                         color: Colors.white,
                         fontSize: 28,
@@ -154,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ).animate().fadeIn(),
                     const SizedBox(height: 4),
                     Text(
-                      'Ready to eat healthy today?',
+                      AppLocalizations.of(context)!.translate('home_tagline'),
                       style: GoogleFonts.outfit(
                         color: Colors.white.withOpacity(0.9),
                         fontSize: 16,
@@ -195,9 +216,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Icon(Icons.search, color: startColor),
                           const SizedBox(width: 8),
-                          Text(
-                            'Search healthy foods...',
-                            style: GoogleFonts.outfit(color: Colors.grey[400]),
+                          Expanded(
+                            child: Text(
+                              AppLocalizations.of(
+                                context,
+                              )!.translate('home_search_placeholder'),
+                              style: GoogleFonts.outfit(
+                                color: Colors.grey[400],
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
                       ),
@@ -242,7 +271,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       children: [
         Text(
-          'LANG',
+          AppLocalizations.of(context)!.translate('home_lang_label'),
           style: GoogleFonts.outfit(
             color: Colors.white,
             fontSize: 10,
@@ -256,20 +285,36 @@ class _HomeScreenState extends State<HomeScreen> {
             setState(() {
               _selectedLanguage = value;
             });
-            // TODO: Implement actual localization switch logic
+            // Update global locale
+            if (value == 'English') {
+              localeNotifier.value = const Locale('en');
+            } else if (value == 'Hindi') {
+              localeNotifier.value = const Locale('hi');
+            } else if (value == 'Asomiya') {
+              localeNotifier.value = const Locale('as');
+            }
           },
           itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
             PopupMenuItem<String>(
               value: 'English',
-              child: Text('English', style: GoogleFonts.outfit()),
+              child: Text(
+                AppLocalizations.of(context)!.translate('lang_english'),
+                style: GoogleFonts.outfit(),
+              ),
             ),
             PopupMenuItem<String>(
               value: 'Hindi',
-              child: Text('Hindi', style: GoogleFonts.outfit()),
+              child: Text(
+                AppLocalizations.of(context)!.translate('lang_hindi'),
+                style: GoogleFonts.outfit(),
+              ),
             ),
             PopupMenuItem<String>(
               value: 'Asomiya',
-              child: Text('Asomiya', style: GoogleFonts.outfit()),
+              child: Text(
+                AppLocalizations.of(context)!.translate('lang_asomiya'),
+                style: GoogleFonts.outfit(),
+              ),
             ),
           ],
           child: Container(
@@ -312,11 +357,14 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           const Icon(Icons.eco, size: 20, color: Color(0xFF10B981)),
           const SizedBox(width: 8),
-          Text(
-            'Your natural journey starts here.',
-            style: GoogleFonts.outfit(
-              color: const Color(0xFF10B981),
-              fontWeight: FontWeight.w600,
+          Flexible(
+            child: Text(
+              AppLocalizations.of(context)!.translate('home_journey_start'),
+              style: GoogleFonts.outfit(
+                color: const Color(0xFF10B981),
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
             ),
           ),
         ],
@@ -328,12 +376,16 @@ class _HomeScreenState extends State<HomeScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: GoogleFonts.outfit(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF2D3436), // Soft black
+        Expanded(
+          child: Text(
+            title,
+            style: GoogleFonts.outfit(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF2D3436), // Soft black
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
         if (actionText != null)
@@ -355,22 +407,22 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildCategoriesGrid() {
     final categories = [
       {
-        'name': 'Fruits',
+        'name_key': 'category_fruits',
         'icon': Icons.apple_outlined,
         'color': const Color(0xFFDCFCE7),
       },
       {
-        'name': 'Vegetables',
+        'name_key': 'category_vegetables',
         'icon': Icons.eco_outlined,
         'color': const Color(0xFFF3E8FF),
       },
       {
-        'name': 'Dairy',
+        'name_key': 'category_dairy',
         'icon': Icons.egg_outlined,
         'color': const Color(0xFFFEF9C3),
       },
       {
-        'name': 'Grains',
+        'name_key': 'category_grains',
         'icon': Icons.grass_outlined,
         'color': const Color(0xFFFFEDD5),
       },
@@ -384,7 +436,7 @@ class _HomeScreenState extends State<HomeScreen> {
         separatorBuilder: (_, __) => const SizedBox(width: 16),
         itemBuilder: (context, index) {
           final cat = categories[index];
-          return Container(
+          return SizedBox(
             width: 80,
             child: InkWell(
               onTap: () => MainLayout.of(context)?.setIndex(1),
@@ -399,8 +451,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    cat['name'] as String,
+                    AppLocalizations.of(
+                      context,
+                    )!.translate(cat['name_key'] as String),
                     textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.outfit(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -438,7 +494,9 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'CHAT WITH SNACKY',
+                  AppLocalizations.of(
+                    context,
+                  )!.translate('home_snacky_banner_title'),
                   style: GoogleFonts.outfit(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
@@ -448,7 +506,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Not sure about a product? Ask Snacky for an instant organic analysis.',
+                  AppLocalizations.of(
+                    context,
+                  )!.translate('home_snacky_banner_desc'),
                   style: GoogleFonts.outfit(
                     color: const Color(0xFF4B5563),
                     fontSize: 14,
@@ -469,7 +529,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       vertical: 12,
                     ),
                   ),
-                  child: const Text('Start Now'),
+                  child: Text(
+                    AppLocalizations.of(context)!.translate('home_start_now'),
+                  ),
                 ),
               ],
             ),

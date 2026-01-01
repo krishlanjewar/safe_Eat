@@ -191,17 +191,26 @@ Respect vegetarian and non-vegetarian preferences
 Overall, this food is okay occasionally. For daily eating, a banana or roasted chana is a much better choice. Small swaps make a big difference.""";
   }
 
-  Future<String> sendMessage(String message) async {
+  Future<String> sendMessage(String message, {String? languageCode}) async {
     try {
+      String fullPrompt = message;
+      if (languageCode != null) {
+        if (languageCode == 'hi') {
+          fullPrompt += "\n\nPlease respond in Hindi (हिंदी).";
+        } else if (languageCode == 'as') {
+          fullPrompt += "\n\nPlease respond in Asomiya (অসমীয়া).";
+        }
+      }
+
       if (kDebugMode) {
-        print('📤 Sending message to Gemini: $message');
+        print('📤 Sending message to Gemini: $fullPrompt');
       }
 
       // Create a chat session with the existing conversation history
       final chat = _model.startChat(history: _conversationHistory);
 
       // Send the message
-      final response = await chat.sendMessage(Content.text(message));
+      final response = await chat.sendMessage(Content.text(fullPrompt));
 
       if (kDebugMode) {
         print('📥 Received response from Gemini');

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:safeat/core/localization/app_localizations.dart';
 import 'package:safeat/features/home/presentation/pages/home_screen.dart';
 import 'package:safeat/features/chatbot/presentation/pages/chat_screen.dart';
 import 'package:safeat/features/search/presentation/pages/search_screen.dart';
@@ -64,26 +65,33 @@ class _MainLayoutState extends State<MainLayout> {
             fontSize: 12,
             fontWeight: FontWeight.w500,
           ),
-          items: const [
+          items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.home_filled),
-              label: 'Home',
+              icon: const Icon(Icons.home_outlined),
+              activeIcon: const Icon(Icons.home_rounded),
+              label: AppLocalizations.of(context)!.translate('nav_home'),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.search_rounded),
-              label: 'Search',
+              icon: const Icon(Icons.search_rounded),
+              activeIcon: const Icon(Icons.search_rounded),
+              label: AppLocalizations.of(context)!.translate('nav_search'),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.qr_code_scanner_rounded),
-              label: 'Scan',
+              icon: const Icon(Icons.qr_code_scanner_rounded),
+              activeIcon: const Icon(Icons.qr_code_scanner_rounded),
+              label: AppLocalizations.of(context)!.translate('nav_scan'),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.shopping_bag_outlined),
-              label: 'Pre Shopping',
+              icon: const Icon(Icons.shopping_basket_outlined),
+              activeIcon: const Icon(Icons.shopping_basket_rounded),
+              label: AppLocalizations.of(
+                context,
+              )!.translate('nav_pre_shopping'),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.smart_toy_outlined),
-              label: 'Snacky',
+              icon: const Icon(Icons.auto_awesome_outlined),
+              activeIcon: const Icon(Icons.auto_awesome_rounded),
+              label: AppLocalizations.of(context)!.translate('nav_chat'),
             ),
           ],
         ),

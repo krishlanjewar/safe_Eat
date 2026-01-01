@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:safeat/features/navigation/bottom_navigation.dart';
 import 'package:openfoodfacts/openfoodfacts.dart';
 import 'package:safeat/features/product/presentation/pages/product_detail_screen.dart';
+import 'package:safeat/core/localization/app_localizations.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -50,9 +51,15 @@ class _SearchScreenState extends State<SearchScreen> {
       debugPrint('Search error: $e');
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error searching: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(
+                context,
+              )!.translate('search_error', {'error': e.toString()}),
+            ),
+          ),
+        );
       }
     }
   }
@@ -60,14 +67,46 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final List<Map<String, dynamic>> categories = [
-      {'name': 'Biscuits', 'icon': Icons.cookie_outlined},
-      {'name': 'Breakfast', 'icon': Icons.breakfast_dining_outlined},
-      {'name': 'Chocolates', 'icon': Icons.icecream_outlined},
-      {'name': 'Drinks', 'icon': Icons.local_drink_outlined},
-      {'name': 'Dairy', 'icon': Icons.egg_outlined},
-      {'name': 'Instant', 'icon': Icons.bolt_outlined},
-      {'name': 'Munchies', 'icon': Icons.fastfood_outlined},
-      {'name': 'Bakes', 'icon': Icons.cake_outlined},
+      {
+        'name_key': 'category_biscuits',
+        'icon': Icons.cookie_outlined,
+        'name': 'Biscuits',
+      },
+      {
+        'name_key': 'category_breakfast',
+        'icon': Icons.breakfast_dining_outlined,
+        'name': 'Breakfast',
+      },
+      {
+        'name_key': 'category_chocolates',
+        'icon': Icons.icecream_outlined,
+        'name': 'Chocolates',
+      },
+      {
+        'name_key': 'category_drinks',
+        'icon': Icons.local_drink_outlined,
+        'name': 'Drinks',
+      },
+      {
+        'name_key': 'category_dairy',
+        'icon': Icons.egg_outlined,
+        'name': 'Dairy',
+      },
+      {
+        'name_key': 'category_instant',
+        'icon': Icons.bolt_outlined,
+        'name': 'Instant',
+      },
+      {
+        'name_key': 'category_munchies',
+        'icon': Icons.fastfood_outlined,
+        'name': 'Munchies',
+      },
+      {
+        'name_key': 'category_bakes',
+        'icon': Icons.cake_outlined,
+        'name': 'Bakes',
+      },
     ];
 
     return Scaffold(
@@ -85,7 +124,9 @@ class _SearchScreenState extends State<SearchScreen> {
                     controller: _searchController,
                     onSubmitted: _performSearch,
                     decoration: InputDecoration(
-                      hintText: 'Search healthy products...',
+                      hintText: AppLocalizations.of(
+                        context,
+                      )!.translate('search_placeholder'),
                       hintStyle: GoogleFonts.outfit(color: Colors.grey[400]),
                       prefixIcon: const Icon(Icons.search, color: Colors.black),
                       suffixIcon: IconButton(
@@ -112,7 +153,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   if (_searchResults.isEmpty && !_isLoading) ...[
                     // Top Searches
                     Text(
-                      "Popular Searches",
+                      AppLocalizations.of(context)!.translate('search_popular'),
                       style: GoogleFonts.outfit(
                         fontWeight: FontWeight.w600,
                         fontSize: 18,
@@ -123,10 +164,30 @@ class _SearchScreenState extends State<SearchScreen> {
                       spacing: 12,
                       runSpacing: 12,
                       children: [
-                        _buildSearchChip("Oats"),
-                        _buildSearchChip("Muesli"),
-                        _buildSearchChip("Yogurt"),
-                        _buildSearchChip("Dark Chocolate"),
+                        _buildSearchChip(
+                          AppLocalizations.of(
+                            context,
+                          )!.translate('search_popular_oats'),
+                          "Oats",
+                        ),
+                        _buildSearchChip(
+                          AppLocalizations.of(
+                            context,
+                          )!.translate('search_popular_muesli'),
+                          "Muesli",
+                        ),
+                        _buildSearchChip(
+                          AppLocalizations.of(
+                            context,
+                          )!.translate('search_popular_yogurt'),
+                          "Yogurt",
+                        ),
+                        _buildSearchChip(
+                          AppLocalizations.of(
+                            context,
+                          )!.translate('search_popular_dark_choc'),
+                          "Dark Chocolate",
+                        ),
                       ],
                     ),
                     const SizedBox(height: 32),
@@ -137,7 +198,9 @@ class _SearchScreenState extends State<SearchScreen> {
 
                     // Categories Grid
                     Text(
-                      "Categories",
+                      AppLocalizations.of(
+                        context,
+                      )!.translate('home_categories'),
                       style: GoogleFonts.outfit(
                         fontWeight: FontWeight.w600,
                         fontSize: 18,
@@ -181,7 +244,9 @@ class _SearchScreenState extends State<SearchScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                categories[index]['name'],
+                                AppLocalizations.of(
+                                  context,
+                                )!.translate(categories[index]['name_key']),
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.outfit(fontSize: 12),
                               ),
@@ -229,13 +294,19 @@ class _SearchScreenState extends State<SearchScreen> {
                                 : null,
                           ),
                           title: Text(
-                            product.productName ?? 'Unknown Product',
+                            product.productName ??
+                                AppLocalizations.of(
+                                  context,
+                                )!.translate('search_no_product'),
                             style: GoogleFonts.outfit(
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           subtitle: Text(
-                            product.brands ?? 'No brand info',
+                            product.brands ??
+                                AppLocalizations.of(
+                                  context,
+                                )!.translate('search_no_brand'),
                             style: GoogleFonts.outfit(fontSize: 12),
                           ),
                           trailing: const Icon(
@@ -267,9 +338,9 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildSearchChip(String label) {
+  Widget _buildSearchChip(String displayLabel, String query) {
     return GestureDetector(
-      onTap: () => _performSearch(label),
+      onTap: () => _performSearch(query),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
@@ -278,7 +349,7 @@ class _SearchScreenState extends State<SearchScreen> {
           border: Border.all(color: Colors.black.withOpacity(0.04)),
         ),
         child: Text(
-          label,
+          displayLabel,
           style: GoogleFonts.outfit(fontSize: 13, color: Colors.black87),
         ),
       ),
@@ -307,7 +378,9 @@ class _SearchScreenState extends State<SearchScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Ask Snacky AI",
+                  AppLocalizations.of(
+                    context,
+                  )!.translate('search_snacky_title'),
                   style: GoogleFonts.outfit(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
@@ -316,7 +389,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "Not sure about an ingredient? Ask Snacky for a natural alternative.",
+                  AppLocalizations.of(context)!.translate('search_snacky_desc'),
                   style: GoogleFonts.outfit(
                     fontSize: 14,
                     color: Colors.grey[600],
@@ -332,9 +405,11 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    "Start Chat",
-                    style: TextStyle(color: Colors.white),
+                  child: Text(
+                    AppLocalizations.of(
+                      context,
+                    )!.translate('search_start_chat'),
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ),
               ],

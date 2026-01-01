@@ -4,6 +4,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/navigation/bottom_navigation.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'core/localization/app_localizations.dart';
+
+// Global locale controller
+final ValueNotifier<Locale> localeNotifier = ValueNotifier(const Locale('en'));
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,18 +25,41 @@ Future<void> main() async {
   // Check for existing session
   final session = Supabase.instance.client.auth.currentSession;
 
-  runApp(MyApp(home: session != null ? const MainLayout() : const LoginPage()));
+  runApp(
+    ValueListenableBuilder<Locale>(
+      valueListenable: localeNotifier,
+      builder: (context, locale, child) {
+        return MyApp(
+          home: session != null ? const MainLayout() : const LoginPage(),
+          locale: locale,
+        );
+      },
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
   final Widget home;
-  const MyApp({super.key, required this.home});
+  final Locale locale;
+  const MyApp({super.key, required this.home, required this.locale});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Safe Eat',
       debugShowCheckedModeBanner: false,
+      locale: locale,
+      supportedLocales: const [
+        Locale('en', ''),
+        Locale('hi', ''),
+        Locale('as', ''),
+      ],
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF10B981), // Emerald Green
