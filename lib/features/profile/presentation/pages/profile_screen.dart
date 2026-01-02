@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:safeat/features/auth/presentation/pages/login_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:safeat/core/localization/app_localizations.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:safeat/providers/user_provider.dart';
@@ -16,10 +17,9 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   // Theme Colors
-  final Color _bgCream = const Color(0xFFF7F5F0);
-  final Color _leafGreen = const Color(0xFF4A6741);
-  final Color _sageSoft = const Color(0xFF8FA88A);
-  final Color _softBlack = const Color(0xFF2D3436);
+  final Color _bgOrganic = const Color(0xFFF9FBF9);
+  final Color _organicGreen = const Color(0xFF10B981);
+  final Color _softBlack = const Color(0xFF1A1C1E);
 
   bool _isLoading = true;
   bool _isEditing = false; // Toggle for Edit Mode
@@ -34,6 +34,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String _dietaryPreference = 'None';
 
+  String _gender = 'Male';
+  final List<String> _genderOptions = ['Male', 'Female', 'Other'];
+
   Map<String, dynamic>? _profile;
 
   @override
@@ -46,23 +49,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
-        final data = await Supabase.instance.client
+        final response = await Supabase.instance.client
             .from('profiles')
             .select()
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
         if (mounted) {
-          setState(() {
-            _profile = data;
-            _isLoading = false;
-            _populateControllers();
-          });
+          if (response == null) {
+            // No profile found - let's switch to edit mode
+            setState(() {
+              _profile = {};
+              _isLoading = false;
+              _isEditing = true; // Force edit mode to create profile
+            });
+          } else {
+            setState(() {
+              _profile = response;
+              _isLoading = false;
+              _populateControllers();
+            });
+          }
+        }
+      } else {
+        // User is not logged in, but somehow reached this screen.
+        // Let's redirect to login.
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const LoginPage()),
+          );
         }
       }
     } catch (e) {
       debugPrint('Error fetching profile: $e');
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Profile Error: ${e.toString()}')),
+        );
+      }
     }
   }
 
@@ -74,6 +99,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _heightController.text = (_profile!['height'] ?? '').toString();
     _phoneController.text = _profile!['phone'] ?? '';
     _dietaryPreference = _profile!['dietary_preference'] ?? 'None';
+    _gender = _profile!['gender'] ?? 'Male';
 
     final allergies = _profile!['allergies'] as List<dynamic>?;
     _allergiesController.text = allergies?.join(', ') ?? '';
@@ -86,23 +112,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (user == null) return;
 
       final updates = {
+        'id': user.id, // Ensure ID is included for upsert
         'full_name': _nameController.text.trim(),
         'age': int.tryParse(_ageController.text) ?? 0,
         'weight': double.tryParse(_weightController.text) ?? 0.0,
         'height': double.tryParse(_heightController.text) ?? 0.0,
         'phone': _phoneController.text.trim(),
         'dietary_preference': _dietaryPreference,
+        'gender': _gender,
         'allergies': _allergiesController.text
             .split(',')
             .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
             .toList(),
         'updated_at': DateTime.now().toIso8601String(),
       };
 
-      await Supabase.instance.client
-          .from('profiles')
-          .update(updates)
-          .eq('id', user.id);
+      await Supabase.instance.client.from('profiles').upsert(updates);
 
       // Refresh data
       await _fetchProfile();
@@ -110,14 +136,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         setState(() => _isEditing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully!')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.translate('profile_update_success'),
+            ),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error updating profile: $e'),
+            content: Text(
+              AppLocalizations.of(context)!.translate('profile_error_prefix') +
+                  e.toString(),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -160,13 +193,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (_isLoading && _profile == null && userData == null) {
       return Scaffold(
-        backgroundColor: _bgCream,
-        body: Center(child: CircularProgressIndicator(color: _leafGreen)),
+        backgroundColor: _bgOrganic,
+        body: Center(child: CircularProgressIndicator(color: _organicGreen)),
       );
     }
 
     return Scaffold(
-      backgroundColor: _bgCream,
+      backgroundColor: _bgOrganic,
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new, color: _softBlack),
@@ -175,7 +208,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          _isEditing ? 'Edit Profile' : 'My Safety Profile',
+          _isEditing
+              ? AppLocalizations.of(context)!.translate('profile_edit_title')
+              : AppLocalizations.of(context)!.translate('profile_title'),
           style: GoogleFonts.outfit(
             color: _softBlack,
             fontWeight: FontWeight.bold,
@@ -184,7 +219,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           if (_isEditing)
             IconButton(
-              icon: Icon(Icons.save, color: _leafGreen),
+              icon: Icon(Icons.save, color: _organicGreen),
               onPressed: _saveProfile,
             )
           else
@@ -195,13 +230,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (!_isEditing)
             IconButton(
               icon: Icon(Icons.logout, color: Colors.red[300]),
-              onPressed: () {
-                Supabase.instance.client.auth.signOut();
-                LoginPage();
-                Navigator.of(
-                  context,
-                ).pushNamedAndRemoveUntil('/', (route) => false);
+              onPressed: () async {
+                await Supabase.instance.client.auth.signOut();
+                if (mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const LoginPage()),
+                    (route) => false,
+                  );
+                }
               },
+              tooltip: AppLocalizations.of(
+                context,
+              )!.translate('profile_logout_button'),
             ),
         ],
       ),
@@ -211,21 +251,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 1. Header (Avatar + Name/Inputs)
-            _buildHeader(_leafGreen, _softBlack, name, age),
+            _buildHeader(_organicGreen, _softBlack),
             const SizedBox(height: 32),
 
             // 2. Health Stats Row (Weight, Height, BMI)
-            _buildStatsSection(_leafGreen, _sageSoft, weight, height, bmi),
+            _buildStatsSection(_organicGreen),
             const SizedBox(height: 32),
 
             // 3. Dietary Info (Dynamic)
-            _buildSectionTitle('Dietary Configuration'),
-            _buildDietarySection(_leafGreen, _bgCream, dietary, allergies),
+            _buildSectionTitle(
+              AppLocalizations.of(
+                context,
+              )!.translate('profile_section_dietary'),
+            ),
+            _buildDietarySection(_organicGreen, _bgOrganic),
             const SizedBox(height: 32),
 
             // 4. Contact Info
-            _buildSectionTitle('Contact Details'),
-            _buildContactSection(_softBlack, phone),
+            _buildSectionTitle(
+              AppLocalizations.of(
+                context,
+              )!.translate('profile_section_contact'),
+            ),
+            _buildContactSection(_softBlack),
             const SizedBox(height: 32),
           ].animate(interval: 50.ms).fadeIn().slideY(begin: 0.1, end: 0),
         ),
@@ -267,15 +315,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const SizedBox(width: 20),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name,
-                style: GoogleFonts.outfit(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: text,
+          child: _isEditing
+              ? Column(
+                  children: [
+                    _buildEditField(
+                      _nameController,
+                      AppLocalizations.of(
+                        context,
+                      )!.translate('profile_field_name'),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildEditField(
+                      _ageController,
+                      AppLocalizations.of(
+                        context,
+                      )!.translate('profile_field_age'),
+                      type: TextInputType.number,
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: _genderOptions.contains(_gender)
+                          ? _gender
+                          : 'Male',
+                      items: _genderOptions
+                          .map(
+                            (e) => DropdownMenuItem(value: e, child: Text(e)),
+                          )
+                          .toList(),
+                      onChanged: (val) => setState(() => _gender = val!),
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(
+                          context,
+                        )!.translate('profile_field_gender'),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _nameController.text.isEmpty
+                          ? 'Guest'
+                          : _nameController.text,
+                      style: GoogleFonts.outfit(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: text,
+                      ),
+                    ),
+                    Text(
+                      '${_gender}, ${_ageController.text} ${AppLocalizations.of(context)!.translate('profile_field_age')}',
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        color: text.withOpacity(0.6),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Text(
@@ -292,13 +398,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Refactor stats section to accept data instead of using controllers
-  Widget _buildStatsSection(Color primary, Color secondary, double weight, double height, double bmi) {
+  Widget _buildStatsSection(Color primary) {
+    if (_isEditing) {
+      return Row(
+        children: [
+          Expanded(
+            child: _buildEditField(
+              _weightController,
+              AppLocalizations.of(context)!.translate('profile_field_weight'),
+              type: TextInputType.number,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: _buildEditField(
+              _heightController,
+              AppLocalizations.of(context)!.translate('profile_field_height'),
+              type: TextInputType.number,
+            ),
+          ),
+        ],
+      );
+    }
+
+    double h = double.tryParse(_heightController.text) ?? 0;
+    double w = double.tryParse(_weightController.text) ?? 0;
+    double bmi = (h > 0) ? w / ((h / 100) * (h / 100)) : 0;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.black.withOpacity(0.04)),
         boxShadow: [
           BoxShadow(
             color: primary.withOpacity(0.05),
@@ -364,7 +496,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildDietarySection(Color primary, Color bg, String dietaryPreference, List<String> allergies) {
+  Widget _buildDietarySection(Color primary, Color bg) {
+    if (_isEditing) {
+      return Column(
+        children: [
+          DropdownButtonFormField<String>(
+            value: _dietaryOptions.contains(_dietaryPreference)
+                ? _dietaryPreference
+                : 'None',
+            items: _dietaryOptions
+                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                .toList(),
+            onChanged: (val) => setState(() => _dietaryPreference = val!),
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(
+                context,
+              )!.translate('profile_field_dietary'),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              filled: true,
+              fillColor: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildEditField(
+            _allergiesController,
+            AppLocalizations.of(context)!.translate('profile_field_allergies'),
+          ),
+        ],
+      );
+    }
+
+    final allergies = _allergiesController.text
+        .split(',')
+        .where((e) => e.isNotEmpty)
+        .toList();
+
     return Column(
       children: [
         Container(
@@ -383,7 +551,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Dietary Preference',
+                    AppLocalizations.of(
+                      context,
+                    )!.translate('profile_field_dietary'),
                     style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey),
                   ),
                   Text(
@@ -420,7 +590,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Allergies',
+                      AppLocalizations.of(context)!
+                          .translate('profile_field_allergies')
+                          .split('(')
+                          .first
+                          .trim(),
                       style: GoogleFonts.outfit(
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFFB91C1C),
@@ -463,7 +637,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Icon(Icons.check_circle_outline, color: primary),
                 const SizedBox(width: 12),
-                Text('No known allergies.', style: TextStyle(color: primary)),
+                Text(
+                  AppLocalizations.of(
+                    context,
+                  )!.translate('profile_no_allergies'),
+                  style: TextStyle(color: primary),
+                ),
               ],
             ),
           ),
@@ -471,7 +650,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildContactSection(Color text, String phoneNumber) {
+  Widget _buildContactSection(Color text) {
+    if (_isEditing) {
+      return _buildEditField(
+        _phoneController,
+        AppLocalizations.of(context)!.translate('profile_field_phone'),
+        type: TextInputType.phone,
+      );
+    }
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -490,7 +676,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const Icon(Icons.phone_iphone_rounded, color: Colors.grey),
           const SizedBox(width: 16),
           Text(
-            phoneNumber,
+            _phoneController.text.isEmpty
+                ? AppLocalizations.of(context)!.translate('profile_no_phone')
+                : _phoneController.text,
             style: GoogleFonts.outfit(fontSize: 16, color: text),
           ),
         ],
@@ -498,4 +686,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildEditField(
+    TextEditingController controller,
+    String label, {
+    TextInputType type = TextInputType.text,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: type,
+      decoration: InputDecoration(
+        labelText: label,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        filled: true,
+        fillColor: Colors.white,
+      ),
+    );
+  }
 }

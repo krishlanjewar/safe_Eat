@@ -1,291 +1,431 @@
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:safeat/features/navigation/bottom_navigation.dart';
+import 'package:openfoodfacts/openfoodfacts.dart';
+import 'package:safeat/features/product/presentation/pages/product_detail_screen.dart';
+import 'package:safeat/core/localization/app_localizations.dart';
+import 'package:safeat/main.dart';
 
-class SearchScreen extends StatelessWidget {
+class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
   @override
+  State<SearchScreen> createState() => _SearchScreenState();
+}
+
+class _SearchScreenState extends State<SearchScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  bool _isLoading = false;
+  List<Product> _searchResults = [];
+
+  Future<void> _performSearch(String query) async {
+    if (query.isEmpty) return;
+
+    setState(() {
+      _isLoading = true;
+      _searchResults = [];
+    });
+
+    try {
+      final ProductSearchQueryConfiguration configuration =
+          ProductSearchQueryConfiguration(
+            parametersList: [
+              SearchTerms(terms: [query]),
+            ],
+            version: ProductQueryVersion.v3,
+            fields: [ProductField.ALL],
+            language: localeNotifier.value.languageCode == 'hi'
+                ? OpenFoodFactsLanguage.HINDI
+                : localeNotifier.value.languageCode == 'as'
+                ? OpenFoodFactsLanguage.ASSAMESE
+                : OpenFoodFactsLanguage.ENGLISH,
+            country: OpenFoodFactsCountry.INDIA,
+          );
+
+      final SearchResult result = await OpenFoodAPIClient.searchProducts(
+        null,
+        configuration,
+      );
+
+      if (mounted) {
+        setState(() {
+          _searchResults = result.products ?? [];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Search error: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(
+                context,
+              )!.translate('search_error', {'error': e.toString()}),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Category Data
     final List<Map<String, dynamic>> categories = [
-      {'name': 'Biscuits', 'color': Colors.blue.shade50},
-      {'name': 'Breakfast &\nSpreads', 'color': Colors.orange.shade50},
-      {'name': 'Chocolates &\nDesserts', 'color': Colors.purple.shade50},
-      {'name': 'Cold Drinks &\nJuices', 'color': Colors.yellow.shade50},
-      {'name': 'Dairy, Bread &\nEggs', 'color': Colors.green.shade50},
-      {'name': 'Instant Foods', 'color': Colors.red.shade50},
-      {'name': 'Munchies', 'color': Colors.amber.shade50},
-      {'name': 'Cakes & Bakes', 'color': Colors.pink.shade50},
-      {'name': 'Dry Fruits, Oil &\nMasalas', 'color': Colors.brown.shade50},
-      {'name': 'Meat', 'color': Colors.deepOrange.shade50},
-      {'name': 'Rice, Atta &\nDals', 'color': Colors.cyan.shade50},
-      {'name': 'Tea, Coffee &\nMore', 'color': Colors.teal.shade50},
+      {
+        'name_key': 'category_biscuits',
+        'icon': Icons.cookie_outlined,
+        'name': 'Biscuits',
+      },
+      {
+        'name_key': 'category_breakfast',
+        'icon': Icons.breakfast_dining_outlined,
+        'name': 'Breakfast',
+      },
+      {
+        'name_key': 'category_chocolates',
+        'icon': Icons.icecream_outlined,
+        'name': 'Chocolates',
+      },
+      {
+        'name_key': 'category_drinks',
+        'icon': Icons.local_drink_outlined,
+        'name': 'Drinks',
+      },
+      {
+        'name_key': 'category_dairy',
+        'icon': Icons.egg_outlined,
+        'name': 'Dairy',
+      },
+      {
+        'name_key': 'category_instant',
+        'icon': Icons.bolt_outlined,
+        'name': 'Instant',
+      },
+      {
+        'name_key': 'category_munchies',
+        'icon': Icons.fastfood_outlined,
+        'name': 'Munchies',
+      },
+      {
+        'name_key': 'category_bakes',
+        'icon': Icons.cake_outlined,
+        'name': 'Bakes',
+      },
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FE), // Light background color from design
+      backgroundColor: const Color(0xFFF9FBF9),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Search Bar
-              TextField(
-                decoration: InputDecoration(
-                  hintText: 'Try searching for " Biscuits "',
-                  hintStyle: GoogleFonts.outfit(
-                    color: Colors.grey[400],
-                    fontSize: 16,
-                  ),
-                  prefixIcon: const Icon(Icons.search, color: Colors.black, size: 28),
-                  suffixIcon: Container(
-                    margin: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.close, color: Colors.black, size: 16),
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Filters Row
-              Row(
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.grey.shade200),
+                  // Search Bar
+                  TextField(
+                    controller: _searchController,
+                    onSubmitted: _performSearch,
+                    decoration: InputDecoration(
+                      hintText: AppLocalizations.of(
+                        context,
+                      )!.translate('search_placeholder'),
+                      hintStyle: GoogleFonts.outfit(color: Colors.grey[400]),
+                      prefixIcon: const Icon(Icons.search, color: Colors.black),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.close, size: 16),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchResults = []);
+                        },
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                  ),
+                  const SizedBox(height: 24),
+
+                  if (_searchResults.isEmpty && !_isLoading) ...[
+                    // Top Searches
+                    Text(
+                      AppLocalizations.of(context)!.translate('search_popular'),
+                      style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 18,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
                       children: [
-                        Text(
-                          "Filters",
-                          style: GoogleFonts.outfit(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black,
-                          ),
+                        _buildSearchChip(
+                          AppLocalizations.of(
+                            context,
+                          )!.translate('search_popular_oats'),
+                          "Oats",
                         ),
-                        const SizedBox(width: 8),
-                         const Icon(Icons.tune_rounded, size: 20),
+                        _buildSearchChip(
+                          AppLocalizations.of(
+                            context,
+                          )!.translate('search_popular_muesli'),
+                          "Muesli",
+                        ),
+                        _buildSearchChip(
+                          AppLocalizations.of(
+                            context,
+                          )!.translate('search_popular_yogurt'),
+                          "Yogurt",
+                        ),
+                        _buildSearchChip(
+                          AppLocalizations.of(
+                            context,
+                          )!.translate('search_popular_dark_choc'),
+                          "Dark Chocolate",
+                        ),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Switch(
-                    value: true, 
-                    onChanged: (val) {},
-                    activeThumbColor: Colors.green,
-                    activeTrackColor: Colors.white,
-                    inactiveThumbColor: Colors.grey,
-                    inactiveTrackColor: Colors.grey[200],
-                    trackOutlineColor: WidgetStateProperty.all(Colors.grey.shade300),
-                  ),
+                    const SizedBox(height: 32),
+
+                    // Snacky Banner
+                    _buildSnackyBanner(),
+                    const SizedBox(height: 32),
+
+                    // Categories Grid
+                    Text(
+                      AppLocalizations.of(
+                        context,
+                      )!.translate('home_categories'),
+                      style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 18,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 4,
+                            mainAxisSpacing: 16,
+                            crossAxisSpacing: 12,
+                            childAspectRatio: 0.7,
+                          ),
+                      itemCount: categories.length,
+                      itemBuilder: (context, index) {
+                        return GestureDetector(
+                          onTap: () =>
+                              _performSearch(categories[index]['name']),
+                          child: Column(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: Colors.black.withOpacity(0.04),
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Icon(
+                                      categories[index]['icon'],
+                                      color: const Color(0xFF10B981),
+                                      size: 28,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                AppLocalizations.of(
+                                  context,
+                                )!.translate(categories[index]['name_key']),
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.outfit(fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ] else ...[
+                    // Search Results
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _searchResults.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final product = _searchResults[index];
+                        return ListTile(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    ProductDetailScreen(product: product),
+                              ),
+                            );
+                          },
+                          leading: Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              image: product.imageFrontUrl != null
+                                  ? DecorationImage(
+                                      image: NetworkImage(
+                                        product.imageFrontUrl!,
+                                      ),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                            ),
+                            child: product.imageFrontUrl == null
+                                ? const Icon(Icons.fastfood, color: Colors.grey)
+                                : null,
+                          ),
+                          title: Text(
+                            product.productName ??
+                                AppLocalizations.of(
+                                  context,
+                                )!.translate('search_no_product'),
+                            style: GoogleFonts.outfit(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          subtitle: Text(
+                            product.brands ??
+                                AppLocalizations.of(
+                                  context,
+                                )!.translate('search_no_brand'),
+                            style: GoogleFonts.outfit(fontSize: 12),
+                          ),
+                          trailing: const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 14,
+                          ),
+                          tileColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: BorderSide(
+                              color: Colors.black.withOpacity(0.04),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                  const SizedBox(height: 100),
                 ],
               ),
-              const SizedBox(height: 24),
-
-              // Top Searches
-              Text(
-                "Top Searches",
-                style: GoogleFonts.outfit(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18,
-                  color: Colors.black,
-                ),
+            ),
+            if (_isLoading)
+              const Center(
+                child: CircularProgressIndicator(color: Color(0xFF10B981)),
               ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  _buildSearchChip("MAGGI", icon: Icons.search),
-                  _buildSearchChip("ghee", icon: Icons.search),
-                  _buildSearchChip("PEANUT BUTTER", icon: Icons.search),
-                  _buildSearchChip("oats", icon: Icons.search),
-                  _buildSearchChip("PANEER", icon: Icons.search),
-                  _buildSearchChip("Muesli", icon: Icons.search),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // TIA Banner
-              Container(
-                 width: double.infinity,
-                 padding: const EdgeInsets.all(20),
-                 decoration: BoxDecoration(
-                   gradient: LinearGradient(
-                     colors: [const Color(0xFFE1bee7), const Color(0xFFF3E5F5)], // Purple 100, Purple 50
-                     begin: Alignment.topLeft,
-                     end: Alignment.bottomRight,
-                   ),
-                   borderRadius: BorderRadius.circular(24),
-                 ),
-                 child: Row(
-                   children: [
-                     Expanded(
-                       flex: 3,
-                       child: Column(
-                         crossAxisAlignment: CrossAxisAlignment.start,
-                         children: [
-                           Text(
-                             "SAY HELLO TO SNACKY",
-                             style: GoogleFonts.outfit(
-                               fontSize: 22,
-                               fontWeight: FontWeight.w800,
-                               color: const Color(0xFF4A148C), // Deep purple
-                               letterSpacing: 0.5,
-                             ),
-                           ),
-                           const SizedBox(height: 8),
-                           Text(
-                             "Want more than what meets the eye? Try the improved Snacky to check products and discover healthier swaps.",
-                             style: GoogleFonts.outfit(
-                               fontSize: 13,
-                               fontWeight: FontWeight.w400,
-                               color: Colors.black87,
-                               height: 1.4,
-                             ),
-                           ),
-                           const SizedBox(height: 16),
-                           ElevatedButton(
-                             onPressed: () {},
-                             style: ElevatedButton.styleFrom(
-                               backgroundColor: const Color(0xFF7B1FA2), // Purple 700
-                               foregroundColor: Colors.white,
-                               shape: RoundedRectangleBorder(
-                                 borderRadius: BorderRadius.circular(30),
-                               ),
-                               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                               elevation: 0,
-                             ),
-                             child: Row(
-                               mainAxisSize: MainAxisSize.min,
-                               children: [
-                                 Text(
-                                   "Chat With Snacky",
-                                   style: GoogleFonts.outfit(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13
-                                   ),
-                                 ),
-                                 const SizedBox(width: 4),
-                                 const Icon(Icons.arrow_forward_ios_rounded, size: 12),
-                               ],
-                             ),
-                           ),
-                         ],
-                       ),
-                     ),
-                     const SizedBox(width: 16),
-                     // 3D Robot Icon Placeholder
-                     Expanded(
-                       flex: 2,
-                       child: Icon(Icons.smart_toy_rounded, 
-                         size: 80, 
-                         color: const Color(0xFF7B1FA2).withValues(alpha: 0.8)
-                       ),
-                     ),
-                   ],
-                 ),
-              ),
-               const SizedBox(height: 24),
-
-               // Categories
-
-               GridView.builder(
-                 shrinkWrap: true,
-                 physics: const NeverScrollableScrollPhysics(),
-                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                   crossAxisCount: 4,
-                   mainAxisSpacing: 16,
-                   crossAxisSpacing: 12,
-                   childAspectRatio: 0.65,
-                 ),
-                 itemCount: categories.length,
-                 itemBuilder: (context, index) {
-                   return Column(
-                     children: [
-                       Expanded(
-                         child: Container(
-                           decoration: BoxDecoration(
-                             color: const Color(0xFFFAEFFF), // categories[index]['color'], using a standard light background for consistency as per image looks like light grey/white/purple tint
-                             borderRadius: BorderRadius.circular(16),
-                             image: DecorationImage(
-                                image: NetworkImage("https://via.placeholder.com/150"), // Placeholder until actual assets are available
-                                fit: BoxFit.cover,
-                                opacity: 0.0 // Hiding placeholder image for now to keep it clean, or could use an icon
-                             ),
-                           ),
-                           child: Center(
-                             child: Icon(Icons.fastfood, color: const Color(0xFF7B1FA2).withValues(alpha: 0.3), size: 30), // Placeholder icon
-                           ),
-                         ),
-                       ),
-                       const SizedBox(height: 8),
-                       Text(
-                         categories[index]['name'],
-                         textAlign: TextAlign.center,
-                         maxLines: 2,
-                         overflow: TextOverflow.ellipsis,
-                         style: GoogleFonts.outfit(
-                           fontSize: 11,
-                           fontWeight: FontWeight.w400,
-                           color: Colors.black87,
-                           height: 1.2,
-                         ),
-                       ),
-                     ],
-                   );
-                 },
-               ),
-            ],
-          ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildSearchChip(String label, {IconData? icon}) {
+  Widget _buildSearchChip(String displayLabel, String query) {
+    return GestureDetector(
+      onTap: () => _performSearch(query),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.black.withOpacity(0.04)),
+        ),
+        child: Text(
+          displayLabel,
+          style: GoogleFonts.outfit(fontSize: 13, color: Colors.black87),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSnackyBanner() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) ...[
-            Icon(icon, size: 18, color: Colors.grey[600]),
-            const SizedBox(width: 8),
-          ],
-          Text(
-            label,
-            style: GoogleFonts.outfit(
-              fontSize: 14,
-              fontWeight: FontWeight.w400,
-              color: Colors.black,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppLocalizations.of(
+                    context,
+                  )!.translate('search_snacky_title'),
+                  style: GoogleFonts.outfit(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF10B981),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  AppLocalizations.of(context)!.translate('search_snacky_desc'),
+                  style: GoogleFonts.outfit(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => MainLayout.of(context)?.setIndex(4),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    AppLocalizations.of(
+                      context,
+                    )!.translate('search_start_chat'),
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
             ),
+          ),
+          const SizedBox(width: 16),
+          const Icon(
+            Icons.psychology_outlined,
+            size: 60,
+            color: Color(0xFF10B981),
           ),
         ],
       ),

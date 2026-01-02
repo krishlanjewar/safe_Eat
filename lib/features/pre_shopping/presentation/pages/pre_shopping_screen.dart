@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:safeat/features/auth/presentation/pages/login_page.dart';
+import 'package:safeat/core/localization/app_localizations.dart';
+import 'package:safeat/features/pre_shopping/data/cart_manager.dart';
+import 'package:safeat/features/pre_shopping/presentation/pages/cart_screen.dart';
 
 class PreShoppingScreen extends StatefulWidget {
   const PreShoppingScreen({super.key});
@@ -10,7 +16,7 @@ class PreShoppingScreen extends StatefulWidget {
 
 class _PreShoppingScreenState extends State<PreShoppingScreen> {
   // Dummy Data
-  final List<FoodItem> _foodItems = [
+  final List<FoodItem> _allFoodItems = [
     FoodItem(
       name: "Apples",
       imageIcon: Icons.apple,
@@ -21,7 +27,7 @@ class _PreShoppingScreenState extends State<PreShoppingScreen> {
     ),
     FoodItem(
       name: "Potato Chips",
-      imageIcon: Icons.fastfood, // Using generic fastfood icon for chips
+      imageIcon: Icons.fastfood,
       calories: 536,
       protein: 7.0,
       isHealthy: false,
@@ -29,7 +35,7 @@ class _PreShoppingScreenState extends State<PreShoppingScreen> {
     ),
     FoodItem(
       name: "Greek Yogurt",
-      imageIcon: Icons.icecream, // Closest to yogurt
+      imageIcon: Icons.icecream,
       calories: 59,
       protein: 10.0,
       isHealthy: true,
@@ -43,7 +49,7 @@ class _PreShoppingScreenState extends State<PreShoppingScreen> {
       isHealthy: false,
       description: "High sugar content, no nutritional value.",
     ),
-     FoodItem(
+    FoodItem(
       name: "Chicken Breast",
       imageIcon: Icons.restaurant,
       calories: 165,
@@ -53,174 +59,68 @@ class _PreShoppingScreenState extends State<PreShoppingScreen> {
     ),
   ];
 
+  late List<FoodItem> _filteredItems;
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredItems = _allFoodItems;
+  }
+
+  void _filterItems(String query) {
+    setState(() {
+      _filteredItems = _allFoodItems
+          .where(
+            (item) => item.name.toLowerCase().contains(query.toLowerCase()),
+          )
+          .toList();
+    });
+  }
+
   void _showFoodDetails(BuildContext context, FoodItem item) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return SafeArea(
-          child: Container(
-            padding: const EdgeInsets.all(24.0),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(
                 child: Container(
-                  width: 60, 
-                  height: 60,
+                  width: 40,
+                  height: 4,
                   decoration: BoxDecoration(
-                    color: item.isHealthy ? Colors.green.shade50 : Colors.red.shade50,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(item.imageIcon, size: 30, color: item.isHealthy ? Colors.green : Colors.red),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Center(
-                child: Text(
-                  item.name,
-                  style: GoogleFonts.outfit(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: item.isHealthy ? Colors.green.shade100 : Colors.red.shade100,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    item.isHealthy ? "✅ Healthy" : "❌ Not Healthy",
-                    style: GoogleFonts.outfit(
-                      color: item.isHealthy ? Colors.green.shade800 : Colors.red.shade800,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
               const SizedBox(height: 24),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                   _buildNutritionInfo("Calories", "${item.calories} kcal"),
-                   _buildNutritionInfo("Protein", "${item.protein}g"),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Text(
-                "Description",
-                style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              Text(
-                item.description,
-                style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey[600]),
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("${item.name} added to your shopping list!")),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7B1FA2), // Purple 700
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  icon: const Icon(Icons.add_shopping_cart_rounded),
-                  label: Text(
-                    "Add to My List",
-                    style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-            ],
-            ),
-          ),
-        ),
-      );
-      },
-    );
-  }
-
-  Widget _buildNutritionInfo(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        Text(
-          label,
-          style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey),
-        ),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          "Pre-Shopping",
-          style: GoogleFonts.outfit(
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-      ),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: _foodItems.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final item = _foodItems[index];
-          return InkWell(
-            onTap: () => _showFoodDetails(context, item),
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade100),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    spreadRadius: 2,
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
                 children: [
                   Container(
-                    width: 50,
-                    height: 50,
+                    width: 64,
+                    height: 64,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF3E5F5), // Purple 50
-                      borderRadius: BorderRadius.circular(12),
+                      color: item.isHealthy
+                          ? Colors.green.withOpacity(0.1)
+                          : Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Icon(item.imageIcon, color: const Color(0xFF7B1FA2)), // Purple 700
+                    child: Icon(
+                      item.imageIcon,
+                      size: 32,
+                      color: item.isHealthy ? Colors.green : Colors.red,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -230,53 +130,361 @@ class _PreShoppingScreenState extends State<PreShoppingScreen> {
                         Text(
                           item.name,
                           style: GoogleFonts.outfit(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF1A1C1E),
                           ),
                         ),
                         Text(
-                          "${item.calories} kcal • ${item.protein}g Protein",
+                          item.isHealthy
+                              ? "Nutritious Choice"
+                              : "Occasional Treat",
                           style: GoogleFonts.outfit(
-                            fontSize: 12,
-                            color: Colors.grey[500],
+                            fontSize: 14,
+                            color: item.isHealthy ? Colors.green : Colors.red,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      shape: BoxShape.circle,
+                ],
+              ),
+              const SizedBox(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildNutritionInfo("Energy", "${item.calories} kcal"),
+                  _buildNutritionInfo("Protein", "${item.protein}g"),
+                  _buildNutritionInfo(
+                    "Health",
+                    item.isHealthy ? "High" : "Low",
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              Text(
+                "Why buy this?",
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1A1C1E),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                item.description,
+                style: GoogleFonts.outfit(
+                  fontSize: 15,
+                  color: const Color(0xFF4B5563),
+                  height: 1.6,
+                ),
+              ),
+              const SizedBox(height: 40),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () {
+                    cartManager.addItem(item);
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("${item.name} added to shopping list"),
+                        backgroundColor: const Color(0xFF10B981),
+                        behavior: SnackBarBehavior.floating,
+                        duration: const Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Icon(Icons.chevron_right_rounded, size: 20, color: Color(0xFF7B1FA2)),
+                  ),
+                  child: Text(
+                    "Add to Shopping List",
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNutritionInfo(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FBF9),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.black.withOpacity(0.03)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF1A1C1E),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[600]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = Supabase.instance.client.auth.currentUser;
+
+    if (user == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF9FBF9),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withOpacity(0.05),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.shopping_basket_rounded,
+                    color: Color(0xFF10B981),
+                    size: 64,
+                  ),
+                ).animate().scale(delay: 200.ms).fadeIn(),
+                const SizedBox(height: 32),
+                Text(
+                  AppLocalizations.of(context)!.translate('pantry_title'),
+                  style: GoogleFonts.outfit(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1A1C1E),
+                  ),
+                  textAlign: TextAlign.center,
+                ).animate().slideY(begin: 0.2, end: 0).fadeIn(),
+                const SizedBox(height: 12),
+                Text(
+                  AppLocalizations.of(context)!.translate('pantry_desc'),
+                  style: GoogleFonts.outfit(
+                    fontSize: 16,
+                    color: const Color(0xFF1A1C1E).withOpacity(0.6),
+                  ),
+                  textAlign: TextAlign.center,
+                ).animate().slideY(begin: 0.2, end: 0, delay: 100.ms).fadeIn(),
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LoginPage(),
+                        ),
+                      );
+                      if (mounted)
+                        setState(() {}); // Refresh to check auth again
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: Text(
+                      AppLocalizations.of(context)!.translate('login_button'),
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ).animate().slideY(begin: 0.2, end: 0, delay: 200.ms).fadeIn(),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9FBF9),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          AppLocalizations.of(context)!.translate('pantry_title'),
+          style: GoogleFonts.outfit(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF1A1C1E),
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.shopping_cart_outlined,
+              color: Color(0xFF10B981),
+            ),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CartScreen()),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 8.0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppLocalizations.of(context)!.translate('pantry_desc'),
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: _searchController,
+                    onChanged: _filterItems,
+                    decoration: InputDecoration(
+                      hintText: "Search items...",
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: Color(0xFF10B981),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(
+                          color: Colors.black.withOpacity(0.04),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-          );
-        },
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                itemCount: _filteredItems.length,
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final item = _filteredItems[index];
+                  return InkWell(
+                    onTap: () => _showFoodDetails(context, item),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.black.withOpacity(0.04),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.01),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: item.isHealthy
+                                  ? const Color(0xFF10B981).withOpacity(0.05)
+                                  : Colors.red.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Icon(
+                              item.imageIcon,
+                              color: item.isHealthy
+                                  ? const Color(0xFF10B981)
+                                  : Colors.red[400],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.name,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF1A1C1E),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  "${item.calories} kcal • ${item.protein}g protein",
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 13,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.add_circle_outline_rounded,
+                            color: Color(0xFF10B981),
+                            size: 28,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
-}
-
-class FoodItem {
-  final String name;
-  final IconData imageIcon;
-  final int calories;
-  final double protein;
-  final bool isHealthy;
-  final String description;
-
-  FoodItem({
-    required this.name,
-    required this.imageIcon,
-    required this.calories,
-    required this.protein,
-    required this.isHealthy,
-    required this.description,
-  });
 }

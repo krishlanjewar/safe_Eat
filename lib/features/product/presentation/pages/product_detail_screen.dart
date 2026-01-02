@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:openfoodfacts/openfoodfacts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-
-import 'package:safeat/features/product/data/services/thesys_service.dart';
+import 'package:safeat/core/localization/app_localizations.dart';
+import 'package:safeat/features/chatbot/data/gemini_service.dart';
+import 'package:safeat/main.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -16,59 +17,109 @@ class ProductDetailScreen extends StatefulWidget {
 }
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
-  String? _aiInsight;
-  bool _loadingInsight = true;
-  final ThesysService _thesysService = ThesysService();
+  final GeminiService _geminiService = GeminiService();
+  String? _aiAnalysis;
+  bool _isAnalyzing = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchInsights();
+    _fetchAIAnalysis();
   }
 
-  Future<void> _fetchInsights() async {
-    // Construct a context string from product data
-    final p = widget.product;
-    final contextData =
-        "Product: ${p.productName}\nBrand: ${p.brands}\nIngredients: ${p.ingredientsText ?? 'N/A'}\nNutriscore: ${p.nutriscore}\nAdditives: ${p.additives?.names.join(', ') ?? 'None'}";
-
+  Future<void> _fetchAIAnalysis() async {
     try {
-      final insight = await _thesysService.generateProductInsight(contextData);
+      final productName = widget.product.productName ?? 'Unknown';
+      final brands = widget.product.brands ?? 'Unknown';
+      final nutriScore = widget.product.nutriscore ?? 'N/A';
+      final novaGroup = widget.product.novaGroup?.toString() ?? 'N/A';
+      final ecoScore = widget.product.ecoscoreGrade ?? 'N/A';
+      final ingredientsList = widget.product.ingredients
+          ?.map((e) => e.text)
+          .whereType<String>()
+          .join(', ');
+      final ingredients =
+          widget.product.ingredientsText ??
+          (ingredientsList != null && ingredientsList.isNotEmpty
+              ? ingredientsList
+              : 'Not list available');
+      final allergensList = widget.product.allergens?.ids;
+      final allergens = allergensList?.join(', ') ?? 'None';
+
+      final productInfo =
+          """
+        Analyze this product:
+        Name: $productName
+        Brand: $brands
+        Nutri-score: $nutriScore
+        Nova Group: $novaGroup
+        Eco-score: $ecoScore
+        Ingredients: $ingredients
+        Allergens: $allergens
+
+        Please follow these rules for your response:
+        1. Start with exactly "Verdict: BUY" or "Verdict: NOT BUY" based on overall healthiness.
+        2. Add a separator: "---".
+        3. Provide a brief, friendly summary of the product (Snacky's Insight).
+        4. Provide a markdown table for ingredients breakdown with columns: | Ingredient | What it does | Impact on Body |.
+        5. For the Impact on Body column, use icons: 🟢 (Safe), 🟡 (Caution), 🔴 (Harmful).
+        6. List any major allergy warnings.
+        7. Suggest 2-3 healthier alternatives if the verdict is "NOT BUY".
+        8. Use simple language that a child can understand.
+      """;
+
+      final response = await _geminiService.sendMessage(
+        productInfo,
+        languageCode: localeNotifier.value.languageCode,
+      );
+
       if (mounted) {
         setState(() {
-          _aiInsight = insight;
-          _loadingInsight = false;
+          _aiAnalysis = response;
+          _isAnalyzing = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _loadingInsight = false);
+      if (mounted) {
+        setState(() {
+          _aiAnalysis =
+              "Unable to get AI analysis right now. Please try again later.";
+          _isAnalyzing = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    const Color primaryColor = Color(0xFF10B981);
+    const Color backgroundColor = Color(0xFFF9FBF9);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
         slivers: [
-          _buildAppBar(context),
-          SliverPadding(
-            padding: const EdgeInsets.all(16.0),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                _buildHeader(),
-                const SizedBox(height: 24),
-                _buildAIInsightsSection(),
-                const SizedBox(height: 24),
-                _buildScoresSection(),
-                const SizedBox(height: 24),
-                _buildIngredientsSection(),
-                const SizedBox(height: 24),
-                _buildNutritionSection(),
-                const SizedBox(height: 24),
-                _buildAllergensSection(),
-                const SizedBox(height: 48),
-              ]),
+          _buildAppBar(context, primaryColor),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 24),
+                  _buildHeader(context),
+                  const SizedBox(height: 32),
+                  _buildDecisionHeading(context, primaryColor),
+                  const SizedBox(height: 24),
+                  _buildScoresSection(context),
+                  const SizedBox(height: 32),
+                  _buildAIAnalysisSection(context, primaryColor),
+                  const SizedBox(height: 32),
+                  _buildNutritionSection(context, primaryColor),
+                  const SizedBox(height: 60),
+                ],
+              ),
             ),
           ),
         ],
@@ -76,355 +127,220 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  Widget _buildAppBar(BuildContext context) {
+  Widget _buildAppBar(BuildContext context, Color primaryColor) {
     return SliverAppBar(
-      expandedHeight: 300.0,
+      expandedHeight: 380.0,
       pinned: true,
+      elevation: 0,
+      stretch: true,
       backgroundColor: Colors.white,
-      leading: IconButton(
-        icon: const Icon(
-          Icons.arrow_back_ios_new,
-          color: Colors.black,
-          size: 20,
-        ),
-        onPressed: () => Navigator.pop(context),
-        style: IconButton.styleFrom(
-          backgroundColor: Colors.white.withOpacity(0.8),
+      leading: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: CircleAvatar(
+          backgroundColor: Colors.white.withOpacity(0.9),
+          child: IconButton(
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+              color: Colors.black,
+              size: 18,
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
       ),
       flexibleSpace: FlexibleSpaceBar(
-        background: Hero(
-          tag: widget.product.barcode ?? 'product_image',
-          child: widget.product.imageFrontUrl != null
-              ? Image.network(
-                  widget.product.imageFrontUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const Center(
-                    child: Icon(
-                      Icons.broken_image,
-                      size: 50,
-                      color: Colors.grey,
+        stretchModes: const [StretchMode.zoomBackground],
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            Hero(
+              tag: widget.product.barcode ?? 'product_image',
+              child: widget.product.imageFrontUrl != null
+                  ? Image.network(
+                      widget.product.imageFrontUrl!,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: Colors.grey[100],
+                        child: const Icon(
+                          Icons.broken_image,
+                          size: 50,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    )
+                  : Container(
+                      color: Colors.grey[100],
+                      child: const Icon(
+                        Icons.image_not_supported,
+                        size: 50,
+                        color: Colors.grey,
+                      ),
                     ),
-                  ),
-                )
-              : Container(
-                  color: Colors.grey[200],
-                  child: const Center(
-                    child: Icon(
-                      Icons.image_not_supported,
-                      size: 50,
-                      color: Colors.grey,
-                    ),
+            ),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: 80,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.white.withOpacity(0.05),
+                    ],
                   ),
                 ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
-    final product = widget.product;
+  Widget _buildHeader(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          product.productName ?? 'Unknown Product',
-          style: GoogleFonts.outfit(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF2D3436),
-          ),
-        ).animate().fadeIn().slideY(begin: 0.2, end: 0),
-        const SizedBox(height: 8),
-        Text(
-          product.brands ?? 'Unknown Brand',
-          style: GoogleFonts.outfit(
-            fontSize: 16,
-            color: Colors.grey[600],
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        if (product.quantity != null)
-          Text(
-            product.quantity!,
-            style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey[500]),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildAIInsightsSection() {
-    return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [const Color(0xFFF3E8FF), const Color(0xFFEaddFF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFD8B4FE), width: 1),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.purple.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.auto_awesome,
-                    color: const Color(0xFF7C3AED),
-                    size: 24,
-                  ),
-                  const SizedBox(width: 8),
                   Text(
-                    "Snacky's Insights",
+                    widget.product.productName ??
+                        AppLocalizations.of(
+                          context,
+                        )!.translate('product_unknown'),
+                    style: GoogleFonts.outfit(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF1A1C2E),
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.product.brands ??
+                        AppLocalizations.of(
+                          context,
+                        )!.translate('product_unknown_brand'),
                     style: GoogleFonts.outfit(
                       fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF5B21B6),
+                      color: const Color(0xFF10B981),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              _loadingInsight
-                  ? const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: CircularProgressIndicator(
-                          color: Color(0xFF7C3AED),
-                        ),
-                      ),
-                    )
-                  : MarkdownBody(
-                      data:
-                          _aiInsight ??
-                          "No specific insights available for this product.",
-                      styleSheet: MarkdownStyleSheet(
-                        p: GoogleFonts.outfit(
-                          fontSize: 14,
-                          color: const Color(0xFF4C1D95),
-                          height: 1.5,
-                        ),
-                        strong: GoogleFonts.outfit(
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF5B21B6),
-                        ),
-                      ),
-                    ),
-            ],
-          ),
-        )
-        .animate()
-        .fadeIn(duration: 800.ms, delay: 200.ms)
-        .moveY(begin: 20, end: 0);
-  }
-
-  Widget _buildScoresSection() {
-    final product = widget.product;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildScoreBadge(
-          'Nutri-Score',
-          product.nutriscore?.toUpperCase() ?? '?',
-          _getNutriScoreColor(product.nutriscore),
-        ),
-        _buildScoreBadge(
-          'NOVA',
-          product.novaGroup?.toString() ?? '?',
-          _getNovaColor(product.novaGroup),
-        ),
-        _buildScoreBadge(
-          'Eco-Score',
-          product.ecoscoreGrade?.toUpperCase() ?? '?',
-          _getEcoScoreColor(product.ecoscoreGrade),
+            ),
+            if (widget.product.quantity != null)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F4F6),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  widget.product.quantity!,
+                  style: GoogleFonts.outfit(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF6B7280),
+                  ),
+                ),
+              ),
+          ],
         ),
       ],
-    ).animate().scale(delay: 200.ms);
+    ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.1, end: 0);
   }
 
-  Widget _buildScoreBadge(String label, String value, Color color) {
-    return Column(
+  Widget _buildScoresSection(BuildContext context) {
+    return Row(
       children: [
-        Container(
-          width: 60,
-          height: 60,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.2),
-            shape: BoxShape.circle,
-            border: Border.all(color: color, width: 2),
+        Expanded(
+          child: _buildScoreCard(
+            context,
+            AppLocalizations.of(context)!.translate('product_nutri_score'),
+            widget.product.nutriscore?.toUpperCase() ?? '?',
+            _getNutriScoreColor(widget.product.nutriscore),
+            Icons.health_and_safety_outlined,
           ),
-          child: Text(
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildScoreCard(
+            context,
+            AppLocalizations.of(context)!.translate('product_nova_score'),
+            widget.product.novaGroup?.toString() ?? '?',
+            _getNovaColor(widget.product.novaGroup),
+            Icons.precision_manufacturing_outlined,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildScoreCard(
+            context,
+            AppLocalizations.of(context)!.translate('product_eco_score'),
+            widget.product.ecoscoreGrade?.toUpperCase() ?? '?',
+            _getEcoScoreColor(widget.product.ecoscoreGrade),
+            Icons.eco_outlined,
+          ),
+        ),
+      ],
+    ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0);
+  }
+
+  Widget _buildScoreCard(
+    BuildContext context,
+    String label,
+    String value,
+    Color color,
+    IconData icon,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(color: color.withOpacity(0.1), width: 1.5),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 12),
+          Text(
             value,
             style: GoogleFonts.outfit(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
               color: color,
             ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: GoogleFonts.outfit(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey[700],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildIngredientsSection() {
-    final product = widget.product;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Ingredients",
-          style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey[200]!),
-          ),
-          child: Text(
-            product.ingredientsText ?? 'Ingredients not available',
-            style: GoogleFonts.outfit(
-              fontSize: 14,
-              color: const Color(0xFF2D3436),
-              height: 1.5,
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Wrap(spacing: 8, children: _buildAttributeChips()),
-      ],
-    ).animate().fadeIn(delay: 300.ms);
-  }
-
-  List<Widget> _buildAttributeChips() {
-    List<Widget> chips = [];
-
-    // Safety handling for ingredientsAnalysisTags
-    final dynamic tags = widget.product.ingredientsAnalysisTags;
-    List<String> safeTags = [];
-
-    if (tags is List) {
-      safeTags = tags.map((e) => e.toString()).toList();
-    } else if (tags != null) {
-      try {
-        final wrapperTags = (tags as dynamic).tags;
-        if (wrapperTags is List) {
-          safeTags = wrapperTags.map((e) => e.toString()).toList();
-        }
-      } catch (_) {
-        // Fallback or ignore
-      }
-    }
-
-    for (var tag in safeTags) {
-      String label = tag.split(':').last.replaceAll('-', ' ');
-      if (label.contains('vegan'))
-        chips.add(_buildChip('Vegan', Colors.green));
-      else if (label.contains('vegetarian'))
-        chips.add(_buildChip('Vegetarian', Colors.green));
-      else if (label.contains('palm oil free'))
-        chips.add(_buildChip('Palm Oil Free', Colors.blue));
-    }
-
-    return chips;
-  }
-
-  Widget _buildChip(String label, Color color) {
-    return Chip(
-      label: Text(label),
-      backgroundColor: color.withOpacity(0.1),
-      labelStyle: TextStyle(color: color, fontSize: 12),
-      side: BorderSide.none,
-      visualDensity: VisualDensity.compact,
-    );
-  }
-
-  Widget _buildNutritionSection() {
-    final nutrients = widget.product.nutriments;
-    if (nutrients == null) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Nutrition Facts (per 100g)",
-          style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        _buildNutrientRow(
-          "Energy",
-          "${nutrients.getValue(Nutrient.energyKCal, PerSize.oneHundredGrams)?.toStringAsFixed(0) ?? '-'} kcal",
-        ),
-        _buildNutrientRow(
-          "Fat",
-          "${nutrients.getValue(Nutrient.fat, PerSize.oneHundredGrams)?.toStringAsFixed(1) ?? '-'} g",
-        ),
-        _buildNutrientRow(
-          "Saturated Fat",
-          "${nutrients.getValue(Nutrient.saturatedFat, PerSize.oneHundredGrams)?.toStringAsFixed(1) ?? '-'} g",
-          indent: true,
-        ),
-        _buildNutrientRow(
-          "Carbohydrates",
-          "${nutrients.getValue(Nutrient.carbohydrates, PerSize.oneHundredGrams)?.toStringAsFixed(1) ?? '-'} g",
-        ),
-        _buildNutrientRow(
-          "Sugars",
-          "${nutrients.getValue(Nutrient.sugars, PerSize.oneHundredGrams)?.toStringAsFixed(1) ?? '-'} g",
-          indent: true,
-        ),
-        _buildNutrientRow(
-          "Fiber",
-          "${nutrients.getValue(Nutrient.fiber, PerSize.oneHundredGrams)?.toStringAsFixed(1) ?? '-'} g",
-        ),
-        _buildNutrientRow(
-          "Proteins",
-          "${nutrients.getValue(Nutrient.proteins, PerSize.oneHundredGrams)?.toStringAsFixed(1) ?? '-'} g",
-        ),
-        _buildNutrientRow(
-          "Salt",
-          "${nutrients.getValue(Nutrient.salt, PerSize.oneHundredGrams)?.toStringAsFixed(2) ?? '-'} g",
-        ),
-      ],
-    ).animate().fadeIn(delay: 400.ms);
-  }
-
-  Widget _buildNutrientRow(String label, String value, {bool indent = false}) {
-    return Padding(
-      padding: EdgeInsets.only(left: indent ? 16.0 : 0, bottom: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
+          const SizedBox(height: 4),
           Text(
             label,
-            style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey[800]),
-          ),
-          Text(
-            value,
             style: GoogleFonts.outfit(
-              fontSize: 14,
+              fontSize: 10,
               fontWeight: FontWeight.bold,
+              color: const Color(0xFF9CA3AF),
+              letterSpacing: 0.5,
             ),
           ),
         ],
@@ -432,49 +348,337 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  Widget _buildAllergensSection() {
-    final allergens = widget.product.allergens;
-    if (allergens == null || allergens.ids == null || allergens.ids!.isEmpty)
-      return const SizedBox.shrink();
+  Widget _buildDecisionHeading(BuildContext context, Color primaryColor) {
+    if (_isAnalyzing) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: Column(
+          children: [
+            const CircularProgressIndicator(
+              color: Color(0xFF10B981),
+              strokeWidth: 3,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "Snacky AI is deciding...",
+              style: GoogleFonts.outfit(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
-    // safe access removing !
-    final ids = allergens.ids;
+    final parts = _aiAnalysis?.split('---') ?? [];
+    final verdictPart = parts.isNotEmpty ? parts[0].trim() : "";
+
+    final isBuy =
+        verdictPart.toUpperCase().contains('BUY') &&
+        !verdictPart.toUpperCase().contains('NOT BUY');
+    final isNotBuy = verdictPart.toUpperCase().contains('NOT BUY');
+
+    // Fallback if AI didn't follow the exact format but mentioned BUY/NOT BUY
+    final bool decision =
+        isBuy || (!isNotBuy && verdictPart.toUpperCase().contains('BUY'));
+
+    final Color verdictColor = isBuy
+        ? const Color(0xFF10B981)
+        : const Color(0xFFEF4444);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2), // Red tint
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFECACA)),
+        color: verdictColor.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: verdictColor.withOpacity(0.2), width: 2),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isBuy ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                color: verdictColor,
+                size: 32,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                decision ? "Decision: BUY" : "Decision: NOT BUY",
+                style: GoogleFonts.outfit(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: verdictColor,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+          if (!isBuy) ...[
+            const SizedBox(height: 8),
+            Text(
+              decision
+                  ? "Snacky recommends this product!"
+                  : "Snacky suggests caution for this product.",
+              style: GoogleFonts.outfit(
+                color: verdictColor.withOpacity(0.8),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ],
+      ),
+    ).animate().fadeIn().scale(begin: const Offset(0.9, 0.9));
+  }
+
+  Widget _buildAIAnalysisSection(BuildContext context, Color primaryColor) {
+    if (_isAnalyzing || _aiAnalysis == null) return const SizedBox.shrink();
+
+    final parts = _aiAnalysis!.split('---');
+    final details = parts.length > 1 ? parts[1].trim() : parts[0].trim();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.red),
-              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: primaryColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.psychology_outlined,
+                  color: primaryColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
               Text(
-                "Allergens",
+                "Snacky's Insight",
                 style: GoogleFonts.outfit(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFFB91C1C),
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF1A1C2E),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            ids!.map((e) => e.split(':').last).join(', '),
-            style: GoogleFonts.outfit(color: const Color(0xFFB91C1C)),
+          const SizedBox(height: 20),
+          MarkdownBody(
+            data: details,
+            styleSheet: MarkdownStyleSheet(
+              p: GoogleFonts.outfit(
+                fontSize: 15,
+                color: const Color(0xFF4B5563),
+                height: 1.6,
+              ),
+              listBullet: GoogleFonts.outfit(color: primaryColor),
+              strong: GoogleFonts.outfit(
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF1A1C3E),
+              ),
+              h1: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF1A1C2E),
+              ),
+              tableBorder: TableBorder.all(color: Colors.grey[200]!, width: 1),
+              tableBody: GoogleFonts.outfit(fontSize: 13),
+              tableHead: GoogleFonts.outfit(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
           ),
         ],
       ),
-    ).animate().fadeIn(delay: 500.ms);
+    ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0);
   }
 
-  // Helpers for Colors
+  Widget _buildNutritionSection(BuildContext context, Color primaryColor) {
+    final nutrients = widget.product.nutriments;
+    if (nutrients == null) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.analytics_outlined,
+                  color: Color(0xFFF59E0B),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                AppLocalizations.of(
+                  context,
+                )!.translate('product_nutrition_per_100g'),
+                style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF1A1C2E),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _buildNutrientRow(
+            AppLocalizations.of(context)!.translate('product_energy'),
+            "${_getNutrientValue(nutrients, Nutrient.energyKCal)?.toStringAsFixed(0) ?? '-'} kcal",
+            const Color(0xFFF59E0B),
+          ),
+          _buildDivider(),
+          _buildNutrientRow(
+            AppLocalizations.of(context)!.translate('product_proteins'),
+            "${_getNutrientValue(nutrients, Nutrient.proteins)?.toStringAsFixed(1) ?? '-'} g",
+            const Color(0xFF10B981),
+          ),
+          _buildDivider(),
+          _buildNutrientRow(
+            AppLocalizations.of(context)!.translate('product_carbohydrates'),
+            "${_getNutrientValue(nutrients, Nutrient.carbohydrates)?.toStringAsFixed(1) ?? '-'} g",
+            const Color(0xFF3B82F6),
+          ),
+          _buildNutrientRow(
+            AppLocalizations.of(context)!.translate('product_sugars'),
+            "${_getNutrientValue(nutrients, Nutrient.sugars)?.toStringAsFixed(1) ?? '-'} g",
+            const Color(0xFF6366F1),
+            isSub: true,
+          ),
+          _buildDivider(),
+          _buildNutrientRow(
+            AppLocalizations.of(context)!.translate('product_fat'),
+            "${_getNutrientValue(nutrients, Nutrient.fat)?.toStringAsFixed(1) ?? '-'} g",
+            const Color(0xFFEF4444),
+          ),
+          _buildNutrientRow(
+            AppLocalizations.of(context)!.translate('product_saturated_fat'),
+            "${_getNutrientValue(nutrients, Nutrient.saturatedFat)?.toStringAsFixed(1) ?? '-'} g",
+            const Color(0xFFB91C1C),
+            isSub: true,
+          ),
+          _buildDivider(),
+          _buildNutrientRow(
+            AppLocalizations.of(context)!.translate('product_fiber'),
+            "${_getNutrientValue(nutrients, Nutrient.fiber)?.toStringAsFixed(1) ?? '-'} g",
+            const Color(0xFF8B5CF6),
+          ),
+          _buildDivider(),
+          _buildNutrientRow(
+            AppLocalizations.of(context)!.translate('product_salt'),
+            "${_getNutrientValue(nutrients, Nutrient.salt)?.toStringAsFixed(2) ?? '-'} g",
+            const Color(0xFF6B7280),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1, end: 0);
+  }
+
+  double? _getNutrientValue(Nutriments nutrients, Nutrient nutrient) {
+    return nutrients.getValue(nutrient, PerSize.oneHundredGrams) ??
+        nutrients.getValue(nutrient, PerSize.serving);
+  }
+
+  Widget _buildNutrientRow(
+    String label,
+    String value,
+    Color color, {
+    bool isSub = false,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(left: isSub ? 20 : 0, top: 12, bottom: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              if (!isSub)
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              if (!isSub) const SizedBox(width: 12),
+              Text(
+                label,
+                style: GoogleFonts.outfit(
+                  fontSize: 15,
+                  color: isSub
+                      ? const Color(0xFF6B7280)
+                      : const Color(0xFF1A1C2E),
+                  fontWeight: isSub ? FontWeight.w500 : FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          Text(
+            value,
+            style: GoogleFonts.outfit(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF1A1C3E),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Divider(color: Colors.grey[100], height: 1);
+  }
+
   Color _getNutriScoreColor(String? score) {
     switch (score?.toLowerCase()) {
       case 'a':
@@ -495,13 +699,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Color _getNovaColor(int? group) {
     switch (group) {
       case 1:
-        return Colors.green;
+        return const Color(0xFF038141);
       case 2:
-        return Colors.yellow;
+        return const Color(0xFFFECB02);
       case 3:
-        return Colors.orange;
+        return const Color(0xFFEE8100);
       case 4:
-        return Colors.red;
+        return const Color(0xFFE63E11);
       default:
         return Colors.grey;
     }

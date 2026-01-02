@@ -3,6 +3,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:safeat/features/navigation/bottom_navigation.dart';
+import 'package:safeat/core/localization/app_localizations.dart';
+import 'package:safeat/main.dart';
 import 'registration_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -30,13 +32,21 @@ class _LoginPageState extends State<LoginPage> {
       );
       // Navigate or show success
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Login successful!')));
-
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const MainLayout()),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.translate('auth_success'),
+            ),
+          ),
         );
+
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop(true);
+        } else {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const MainLayout()),
+          );
+        }
       }
     } on AuthException catch (e) {
       if (mounted) {
@@ -48,7 +58,11 @@ class _LoginPageState extends State<LoginPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('An unexpected error occurred: $e'),
+            content: Text(
+              AppLocalizations.of(
+                context,
+              )!.translate('auth_error', {'error': e.toString()}),
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -65,14 +79,16 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     // Organic, Natural Theme Colors
-    const Color bgCream = Color(0xFFF7F5F0);
-    const Color leafGreen = Color(0xFF4A6741);
-    const Color earthSand = Color(0xFFC2B280);
-    const Color softBlack = Color(0xFF2D3436);
-    const Color sageLight = Color(0xFF8FA88A);
+    const Color organicGreen = Color(0xFF10B981);
+    const Color softBlack = Color(0xFF1A1C1E);
 
     return Scaffold(
-      backgroundColor: bgCream,
+      backgroundColor: const Color(0xFFF9FBF9),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [_buildLanguageSelector(organicGreen)],
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -84,12 +100,12 @@ class _LoginPageState extends State<LoginPage> {
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
-                      color: leafGreen.withOpacity(0.1),
+                      color: organicGreen.withOpacity(0.05),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
                       Icons.eco_rounded,
-                      color: leafGreen,
+                      color: organicGreen,
                       size: 50,
                     ),
                   )
@@ -101,7 +117,7 @@ class _LoginPageState extends State<LoginPage> {
 
               // Title
               Text(
-                    'Safe Eat',
+                    AppLocalizations.of(context)!.translate('login_title'),
                     style: GoogleFonts.outfit(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -113,7 +129,7 @@ class _LoginPageState extends State<LoginPage> {
                   .slideY(begin: 0.3, end: 0),
 
               Text(
-                    'Eat healthy, live naturally.',
+                    AppLocalizations.of(context)!.translate('login_subtitle'),
                     style: GoogleFonts.outfit(
                       fontSize: 16,
                       color: softBlack.withOpacity(0.6),
@@ -129,16 +145,16 @@ class _LoginPageState extends State<LoginPage> {
               Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: leafGreen.withOpacity(0.05),
+                          color: Colors.black.withOpacity(0.03),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
                       ],
                     ),
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(32),
                     child: Column(
                       children: [
                         // Email Field
@@ -146,20 +162,22 @@ class _LoginPageState extends State<LoginPage> {
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           decoration: InputDecoration(
-                            labelText: 'Email Address',
+                            labelText: AppLocalizations.of(
+                              context,
+                            )!.translate('login_email_hint'),
                             labelStyle: TextStyle(
                               color: softBlack.withOpacity(0.5),
                             ),
-                            prefixIcon: Icon(
+                            prefixIcon: const Icon(
                               Icons.email_outlined,
-                              color: leafGreen,
+                              color: organicGreen,
                             ),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(16),
                               borderSide: BorderSide.none,
                             ),
                             filled: true,
-                            fillColor: bgCream,
+                            fillColor: const Color(0xFFF9FBF9),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -168,20 +186,22 @@ class _LoginPageState extends State<LoginPage> {
                           controller: _passwordController,
                           obscureText: true,
                           decoration: InputDecoration(
-                            labelText: 'Password',
+                            labelText: AppLocalizations.of(
+                              context,
+                            )!.translate('login_password_hint'),
                             labelStyle: TextStyle(
                               color: softBlack.withOpacity(0.5),
                             ),
-                            prefixIcon: Icon(
+                            prefixIcon: const Icon(
                               Icons.lock_outline,
-                              color: leafGreen,
+                              color: organicGreen,
                             ),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(16),
                               borderSide: BorderSide.none,
                             ),
                             filled: true,
-                            fillColor: bgCream,
+                            fillColor: const Color(0xFFF9FBF9),
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -193,11 +213,11 @@ class _LoginPageState extends State<LoginPage> {
                           child: ElevatedButton(
                             onPressed: _isLoading ? null : _handleAuth,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: leafGreen,
+                              backgroundColor: organicGreen,
                               foregroundColor: Colors.white,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(16),
                               ),
                             ),
                             child: _isLoading
@@ -209,9 +229,11 @@ class _LoginPageState extends State<LoginPage> {
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : const Text(
-                                    'Login',
-                                    style: TextStyle(
+                                : Text(
+                                    AppLocalizations.of(
+                                      context,
+                                    )!.translate('login_button'),
+                                    style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -227,25 +249,31 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 24),
 
-              // Toggle Sign Up / Login
               TextButton(
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  final registered = await Navigator.push<bool>(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const RegistrationPage(),
                     ),
                   );
+                  if (registered == true && mounted) {
+                    Navigator.pop(context, true);
+                  }
                 },
                 child: RichText(
                   text: TextSpan(
-                    text: "Don't have an account? ",
+                    text: AppLocalizations.of(
+                      context,
+                    )!.translate('login_no_account'),
                     style: TextStyle(color: softBlack.withOpacity(0.7)),
-                    children: const [
+                    children: [
                       TextSpan(
-                        text: "Sign Up",
-                        style: TextStyle(
-                          color: leafGreen,
+                        text: AppLocalizations.of(
+                          context,
+                        )!.translate('login_sign_up'),
+                        style: const TextStyle(
+                          color: organicGreen,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -253,6 +281,56 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
               ).animate().fadeIn(duration: 600.ms, delay: 600.ms),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageSelector(Color organicGreen) {
+    String currentLang = localeNotifier.value.languageCode == 'hi'
+        ? 'HI'
+        : localeNotifier.value.languageCode == 'as'
+        ? 'AS'
+        : 'EN';
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 16.0),
+      child: PopupMenuButton<String>(
+        onSelected: (String value) {
+          if (value == 'EN') {
+            localeNotifier.value = const Locale('en');
+          } else if (value == 'HI') {
+            localeNotifier.value = const Locale('hi');
+          } else if (value == 'AS') {
+            localeNotifier.value = const Locale('as');
+          }
+        },
+        itemBuilder: (context) => [
+          const PopupMenuItem(value: 'EN', child: Text('English')),
+          const PopupMenuItem(value: 'HI', child: Text('Hindi')),
+          const PopupMenuItem(value: 'AS', child: Text('Asomiya')),
+        ],
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: organicGreen.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.language, size: 16, color: organicGreen),
+              const SizedBox(width: 4),
+              Text(
+                currentLang,
+                style: TextStyle(
+                  color: organicGreen,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
             ],
           ),
         ),
