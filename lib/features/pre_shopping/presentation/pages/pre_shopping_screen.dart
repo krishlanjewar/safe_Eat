@@ -15,15 +15,20 @@ class PreShoppingScreen extends StatefulWidget {
 }
 
 class _PreShoppingScreenState extends State<PreShoppingScreen> {
+  // Theme Colors (Consistent with app design)
+  final Color _purpleMain = const Color(0xFF7B1FA2);
+  final Color _bgCream = const Color(0xFFF7F5F0);
+  final Color _softBlack = const Color(0xFF2D3436);
+
   // Dummy Data
   final List<FoodItem> _allFoodItems = [
     FoodItem(
-      name: "Apples",
+      name: "Fresh Apples",
       imageIcon: Icons.apple,
       calories: 52,
       protein: 0.3,
       isHealthy: true,
-      description: "Rich in fiber and Vitamin C.",
+      description: "Crunchy, sweet, and packed with fiber. Perfect for a quick healthy snack.",
     ),
     FoodItem(
       name: "Potato Chips",
@@ -31,7 +36,7 @@ class _PreShoppingScreenState extends State<PreShoppingScreen> {
       calories: 536,
       protein: 7.0,
       isHealthy: false,
-      description: "High in sodium and saturated fats.",
+      description: "Highly processed, high in sodium and unhealthy fats. Limit consumption.",
     ),
     FoodItem(
       name: "Greek Yogurt",
@@ -39,15 +44,15 @@ class _PreShoppingScreenState extends State<PreShoppingScreen> {
       calories: 59,
       protein: 10.0,
       isHealthy: true,
-      description: "Excellent source of protein and probiotics.",
+      description: "A protein powerhouse with probiotics for gut health.",
     ),
     FoodItem(
-      name: "Soda",
+      name: "Classic Cola",
       imageIcon: Icons.local_drink,
       calories: 140,
       protein: 0.0,
       isHealthy: false,
-      description: "High sugar content, no nutritional value.",
+      description: "Extremely high in refined sugar. Leads to insulin spikes.",
     ),
     FoodItem(
       name: "Chicken Breast",
@@ -55,7 +60,15 @@ class _PreShoppingScreenState extends State<PreShoppingScreen> {
       calories: 165,
       protein: 31.0,
       isHealthy: true,
-      description: "Lean protein source, low in fat.",
+      description: "Excellent lean protein source for muscle repair and growth.",
+    ),
+    FoodItem(
+      name: "Whole Wheat Bread",
+      imageIcon: Icons.bakery_dining,
+      calories: 247,
+      protein: 13.0,
+      isHealthy: true,
+      description: "Complex carbohydrates that provide steady energy throughout the day.",
     ),
   ];
 
@@ -94,6 +107,7 @@ class _PreShoppingScreenState extends State<PreShoppingScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Handle for bottom sheet
               Center(
                 child: Container(
                   width: 40,
@@ -212,6 +226,7 @@ class _PreShoppingScreenState extends State<PreShoppingScreen> {
                   ),
                 ),
               ),
+              const SizedBox(height: 10),
             ],
           ),
         );
