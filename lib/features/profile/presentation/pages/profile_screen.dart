@@ -4,6 +4,9 @@ import 'package:safeat/features/auth/presentation/pages/login_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:safeat/core/localization/app_localizations.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
+import 'package:safeat/providers/user_provider.dart';
+import 'package:safeat/models/user_model.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -30,15 +33,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _allergiesController = TextEditingController();
 
   String _dietaryPreference = 'None';
-  final List<String> _dietaryOptions = [
-    'None',
-    'Vegan',
-    'Vegetarian',
-    'Gluten Free',
-    'Halal',
-    'Keto',
-    'Paleo',
-  ];
 
   String _gender = 'Male';
   final List<String> _genderOptions = ['Male', 'Female', 'Other'];
@@ -168,7 +162,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading && _profile == null) {
+    // 1. Get user from Provider
+    final userData = context.watch<UserProvider>().user;
+
+    // 2. Logic to handle "local/demo data" or "backend data"
+    // If we have data from signup (Provider), use it.
+    // Otherwise fallback to what we fetched from Supabase (if any).
+    final String name = userData?.name ?? _profile?['full_name'] ?? 'Guest';
+    final String age = userData != null ? userData.age.toString() : (_profile?['age'] ?? '0').toString();
+    final double weight = userData?.weight ?? (_profile?['weight']?.toDouble() ?? 0.0);
+    final double height = userData?.height ?? (_profile?['height']?.toDouble() ?? 0.0);
+    final String dietary = userData?.dietaryPreference ?? _profile?['dietary_preference'] ?? 'None';
+    final String phone = userData?.phone ?? _profile?['phone'] ?? 'No phone number';
+    
+    // Allergies logic
+    List<String> allergies = [];
+    if (userData != null) {
+      allergies = userData.allergies;
+    } else if (_profile != null && _profile!['allergies'] != null) {
+      allergies = List<String>.from(_profile!['allergies']);
+    }
+
+    // BMI logic
+    double bmi = 0;
+    if (userData != null) {
+      bmi = userData.bmi;
+    } else if (height > 0) {
+      bmi = weight / ((height / 100) * (height / 100));
+    }
+
+    if (_isLoading && _profile == null && userData == null) {
       return Scaffold(
         backgroundColor: _bgOrganic,
         body: Center(child: CircularProgressIndicator(color: _organicGreen)),
@@ -272,7 +295,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildHeader(Color primary, Color text) {
+  Widget _buildHeader(Color primary, Color text, String name, String age) {
     return Row(
       children: [
         Container(
@@ -360,6 +383,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ],
                 ),
+              ),
+              Text(
+                '$age Years',
+                style: GoogleFonts.outfit(
+                  fontSize: 14,
+                  color: text.withOpacity(0.6),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -411,14 +444,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           _buildStatItem(
             'Weight',
-            '$w kg',
+            '$weight kg',
             Icons.monitor_weight_outlined,
             primary,
           ),
           Container(width: 1, height: 40, color: Colors.grey[200]),
           _buildStatItem(
             'Height',
-            '${h.toStringAsFixed(0)} cm',
+            '${height.toStringAsFixed(0)} cm',
             Icons.height,
             primary,
           ),
@@ -524,7 +557,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey),
                   ),
                   Text(
-                    _dietaryPreference,
+                    dietaryPreference,
                     style: GoogleFonts.outfit(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
