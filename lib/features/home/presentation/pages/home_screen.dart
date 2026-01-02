@@ -8,6 +8,9 @@ import 'package:safeat/features/navigation/bottom_navigation.dart';
 import 'package:safeat/main.dart';
 import 'package:safeat/core/localization/app_localizations.dart';
 import 'package:safeat/features/auth/presentation/pages/login_page.dart';
+import 'package:safeat/features/home/data/news_service.dart';
+import 'package:safeat/features/home/data/reddit_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,6 +23,13 @@ class _HomeScreenState extends State<HomeScreen> {
   String _userName = 'Friend';
   bool _isLoading = true;
   String _selectedLanguage = 'English';
+  List<NewsArticle> _newsArticles = [];
+  bool _isNewsLoading = true;
+  final NewsService _newsService = NewsService();
+
+  List<RedditPost> _redditPosts = [];
+  bool _isRedditLoading = true;
+  final RedditService _redditService = RedditService();
 
   late final StreamSubscription<AuthState> _authSubscription;
 
@@ -32,6 +42,57 @@ class _HomeScreenState extends State<HomeScreen> {
     ) {
       if (mounted) _fetchUserData();
     });
+    _fetchNews();
+    _fetchReddit();
+  }
+
+  Future<void> _fetchReddit() async {
+    try {
+      final posts = await _redditService.fetchFoodReviews();
+      if (mounted) {
+        setState(() {
+          _redditPosts = posts;
+          _isRedditLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching reddit: $e');
+      if (mounted) {
+        setState(() {
+          _isRedditLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _fetchNews() async {
+    try {
+      final news = await _newsService.fetchFoodNews();
+      if (mounted) {
+        setState(() {
+          _newsArticles = news;
+          _isNewsLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching news: $e');
+      if (mounted) {
+        setState(() {
+          _isNewsLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _launchURL(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not launch the link')),
+        );
+      }
+    }
   }
 
   @override
@@ -145,7 +206,53 @@ class _HomeScreenState extends State<HomeScreen> {
                         // Latest News
                         _buildSectionHeader('Latest News'),
                         const SizedBox(height: 16),
-                        _buildNewsCard(organicGreen),
+                        if (_isNewsLoading)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: CircularProgressIndicator(
+                                color: organicGreen,
+                              ),
+                            ),
+                          )
+                        else
+                          ..._newsArticles
+                              .take(3)
+                              .map(
+                                (article) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 12.0),
+                                  child: _buildNewsCard(organicGreen, article),
+                                ),
+                              ),
+
+                        const SizedBox(height: 24),
+
+                        // Reddit Section
+                        _buildSectionHeader('Food Reviews (Reddit)'),
+                        const SizedBox(height: 16),
+                        if (_isRedditLoading)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: CircularProgressIndicator(
+                                color: organicGreen,
+                              ),
+                            ),
+                          )
+                        else if (_redditPosts.isEmpty)
+                          Text(
+                            'No reviews found.',
+                            style: GoogleFonts.outfit(color: Colors.grey),
+                          )
+                        else
+                          ..._redditPosts
+                              .take(4)
+                              .map(
+                                (post) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 12.0),
+                                  child: _buildRedditCard(organicGreen, post),
+                                ),
+                              ),
 
                         const SizedBox(height: 100), // Bottom padding
                       ],
@@ -648,51 +755,200 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildNewsCard(Color primary) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
+  Widget _buildNewsCard(Color primary, NewsArticle article) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _launchURL(article.url),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey[200]!),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey[200]!),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  image: article.urlToImage != null
+                      ? DecorationImage(
+                          image: NetworkImage(article.urlToImage!),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+                child: article.urlToImage == null
+                    ? Icon(Icons.article, color: primary)
+                    : null,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            article.source,
+                            style: GoogleFonts.outfit(
+                              color: primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          article.publishedAt.split('T').first,
+                          style: GoogleFonts.outfit(
+                            color: Colors.grey[400],
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      article.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: const Color(0xFF2D3436),
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      article.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.outfit(
+                        color: Colors.grey[500],
+                        fontSize: 11,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              color: primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(Icons.article, color: primary),
+    );
+  }
+
+  Widget _buildRedditCard(Color primary, RedditPost post) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _launchURL(post.url),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFF10B981).withOpacity(0.1)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Top 10 Superfoods for 2025',
-                  style: GoogleFonts.outfit(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: const Color(0xFF2D3436),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF4500).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      "r/${post.subreddit}",
+                      style: GoogleFonts.outfit(
+                        color: const Color(0xFFFF4500),
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Discover the nutrient powerhouses taking over the market.',
-                  style: GoogleFonts.outfit(
-                    color: Colors.grey[500],
-                    fontSize: 12,
+                  const SizedBox(width: 8),
+                  Text(
+                    "u/${post.author}",
+                    style: GoogleFonts.outfit(
+                      color: Colors.grey[500],
+                      fontSize: 10,
+                    ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                post.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: const Color(0xFF2D3436),
+                  height: 1.3,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(
+                    Icons.arrow_upward_rounded,
+                    color: Colors.grey[400],
+                    size: 14,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    "${post.ups}",
+                    style: GoogleFonts.outfit(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Icon(
+                    Icons.chat_bubble_outline_rounded,
+                    color: Colors.grey[400],
+                    size: 14,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    "${post.numComments}",
+                    style: GoogleFonts.outfit(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
