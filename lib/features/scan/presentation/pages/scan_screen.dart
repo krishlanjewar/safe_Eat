@@ -3,6 +3,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:openfoodfacts/openfoodfacts.dart';
 import 'package:safeat/features/product/presentation/pages/product_detail_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:safeat/main.dart';
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});
@@ -23,11 +24,6 @@ class _ScanScreenState extends State<ScanScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize OpenFoodFacts configuration
-    OpenFoodAPIConfiguration.userAgent = UserAgent(
-      name: 'Safe Eat',
-      system: 'Flutter App',
-    );
   }
 
   @override
@@ -57,8 +53,12 @@ class _ScanScreenState extends State<ScanScreen> {
                 code,
                 version: ProductQueryVersion.v3,
                 fields: [ProductField.ALL],
-                language: OpenFoodFactsLanguage.ENGLISH,
-                country: OpenFoodFactsCountry.USA, // Defaulting to USA for now
+                language: localeNotifier.value.languageCode == 'hi'
+                    ? OpenFoodFactsLanguage.HINDI
+                    : localeNotifier.value.languageCode == 'as'
+                    ? OpenFoodFactsLanguage.ASSAMESE
+                    : OpenFoodFactsLanguage.ENGLISH,
+                country: OpenFoodFactsCountry.INDIA,
               );
 
           final ProductResultV3 result = await OpenFoodAPIClient.getProductV3(

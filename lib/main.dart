@@ -6,6 +6,7 @@ import 'features/navigation/bottom_navigation.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/localization/app_localizations.dart';
 import 'core/localization/locale_service.dart';
+import 'package:openfoodfacts/openfoodfacts.dart';
 
 // Global locale controller
 final ValueNotifier<Locale> localeNotifier = ValueNotifier(const Locale('en'));
@@ -20,6 +21,12 @@ Future<void> main() async {
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL'] ?? '',
     anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
+  );
+
+  // Initialize OpenFoodFacts configuration globally
+  OpenFoodAPIConfiguration.userAgent = UserAgent(
+    name: 'Safe Eat',
+    system: 'Flutter App',
   );
 
   // Load saved locale

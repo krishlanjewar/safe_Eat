@@ -34,8 +34,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       final nutriScore = widget.product.nutriscore ?? 'N/A';
       final novaGroup = widget.product.novaGroup?.toString() ?? 'N/A';
       final ecoScore = widget.product.ecoscoreGrade ?? 'N/A';
+      final ingredientsList = widget.product.ingredients
+          ?.map((e) => e.text)
+          .whereType<String>()
+          .join(', ');
       final ingredients =
-          widget.product.ingredientsText ?? 'Not list available';
+          widget.product.ingredientsText ??
+          (ingredientsList != null && ingredientsList.isNotEmpty
+              ? ingredientsList
+              : 'Not list available');
       final allergensList = widget.product.allergens?.ids;
       final allergens = allergensList?.join(', ') ?? 'None';
 
@@ -50,12 +57,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         Ingredients: $ingredients
         Allergens: $allergens
 
-        Please follow these rules:
-        1. Start with the verdict: exactly "BUY" or "NOT BUY".
-        2. After the verdict, add a separator: "---".
-        3. Then give clear reasons in very simple words (no fancy words).
-        4. Break down the ingredients list and explain "What it does to your body" for each major ingredient.
-        5. Suggest a healthy alternative if it's "NOT BUY".
+        Please follow these rules for your response:
+        1. Start with exactly "Verdict: BUY" or "Verdict: NOT BUY" based on overall healthiness.
+        2. Add a separator: "---".
+        3. Provide a brief, friendly summary of the product (Snacky's Insight).
+        4. Provide a markdown table for ingredients breakdown with columns: | Ingredient | What it does | Impact on Body |.
+        5. For the Impact on Body column, use icons: 🟢 (Safe), 🟡 (Caution), 🔴 (Harmful).
+        6. List any major allergy warnings.
+        7. Suggest 2-3 healthier alternatives if the verdict is "NOT BUY".
+        8. Use simple language that a child can understand.
       """;
 
       final response = await _geminiService.sendMessage(
@@ -368,10 +378,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
 
     final parts = _aiAnalysis?.split('---') ?? [];
-    final verdict = parts.isNotEmpty ? parts[0].trim() : "NOT SURE";
+    final verdictPart = parts.isNotEmpty ? parts[0].trim() : "";
+
     final isBuy =
-        verdict.toUpperCase().contains('BUY') &&
-        !verdict.toUpperCase().contains('NOT BUY');
+        verdictPart.toUpperCase().contains('BUY') &&
+        !verdictPart.toUpperCase().contains('NOT BUY');
+    final isNotBuy = verdictPart.toUpperCase().contains('NOT BUY');
+
+    // Fallback if AI didn't follow the exact format but mentioned BUY/NOT BUY
+    final bool decision =
+        isBuy || (!isNotBuy && verdictPart.toUpperCase().contains('BUY'));
 
     final Color verdictColor = isBuy
         ? const Color(0xFF10B981)
@@ -397,7 +413,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ),
               const SizedBox(width: 12),
               Text(
-                isBuy ? "Decision: BUY" : "Decision: NOT BUY",
+                decision ? "Decision: BUY" : "Decision: NOT BUY",
                 style: GoogleFonts.outfit(
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
@@ -410,7 +426,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           if (!isBuy) ...[
             const SizedBox(height: 8),
             Text(
-              "Snacky suggests caution for this product.",
+              decision
+                  ? "Snacky recommends this product!"
+                  : "Snacky suggests caution for this product.",
               style: GoogleFonts.outfit(
                 color: verdictColor.withOpacity(0.8),
                 fontSize: 14,
@@ -490,6 +508,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 fontWeight: FontWeight.bold,
                 color: const Color(0xFF1A1C2E),
               ),
+              tableBorder: TableBorder.all(color: Colors.grey[200]!, width: 1),
+              tableBody: GoogleFonts.outfit(fontSize: 13),
+              tableHead: GoogleFonts.outfit(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
             ),
           ),
         ],
@@ -548,54 +572,59 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           const SizedBox(height: 24),
           _buildNutrientRow(
             AppLocalizations.of(context)!.translate('product_energy'),
-            "${nutrients.getValue(Nutrient.energyKCal, PerSize.oneHundredGrams)?.toStringAsFixed(0) ?? '-'} kcal",
+            "${_getNutrientValue(nutrients, Nutrient.energyKCal)?.toStringAsFixed(0) ?? '-'} kcal",
             const Color(0xFFF59E0B),
           ),
           _buildDivider(),
           _buildNutrientRow(
             AppLocalizations.of(context)!.translate('product_proteins'),
-            "${nutrients.getValue(Nutrient.proteins, PerSize.oneHundredGrams)?.toStringAsFixed(1) ?? '-'} g",
+            "${_getNutrientValue(nutrients, Nutrient.proteins)?.toStringAsFixed(1) ?? '-'} g",
             const Color(0xFF10B981),
           ),
           _buildDivider(),
           _buildNutrientRow(
             AppLocalizations.of(context)!.translate('product_carbohydrates'),
-            "${nutrients.getValue(Nutrient.carbohydrates, PerSize.oneHundredGrams)?.toStringAsFixed(1) ?? '-'} g",
+            "${_getNutrientValue(nutrients, Nutrient.carbohydrates)?.toStringAsFixed(1) ?? '-'} g",
             const Color(0xFF3B82F6),
           ),
           _buildNutrientRow(
             AppLocalizations.of(context)!.translate('product_sugars'),
-            "${nutrients.getValue(Nutrient.sugars, PerSize.oneHundredGrams)?.toStringAsFixed(1) ?? '-'} g",
+            "${_getNutrientValue(nutrients, Nutrient.sugars)?.toStringAsFixed(1) ?? '-'} g",
             const Color(0xFF6366F1),
             isSub: true,
           ),
           _buildDivider(),
           _buildNutrientRow(
             AppLocalizations.of(context)!.translate('product_fat'),
-            "${nutrients.getValue(Nutrient.fat, PerSize.oneHundredGrams)?.toStringAsFixed(1) ?? '-'} g",
+            "${_getNutrientValue(nutrients, Nutrient.fat)?.toStringAsFixed(1) ?? '-'} g",
             const Color(0xFFEF4444),
           ),
           _buildNutrientRow(
             AppLocalizations.of(context)!.translate('product_saturated_fat'),
-            "${nutrients.getValue(Nutrient.saturatedFat, PerSize.oneHundredGrams)?.toStringAsFixed(1) ?? '-'} g",
+            "${_getNutrientValue(nutrients, Nutrient.saturatedFat)?.toStringAsFixed(1) ?? '-'} g",
             const Color(0xFFB91C1C),
             isSub: true,
           ),
           _buildDivider(),
           _buildNutrientRow(
             AppLocalizations.of(context)!.translate('product_fiber'),
-            "${nutrients.getValue(Nutrient.fiber, PerSize.oneHundredGrams)?.toStringAsFixed(1) ?? '-'} g",
+            "${_getNutrientValue(nutrients, Nutrient.fiber)?.toStringAsFixed(1) ?? '-'} g",
             const Color(0xFF8B5CF6),
           ),
           _buildDivider(),
           _buildNutrientRow(
             AppLocalizations.of(context)!.translate('product_salt'),
-            "${nutrients.getValue(Nutrient.salt, PerSize.oneHundredGrams)?.toStringAsFixed(2) ?? '-'} g",
+            "${_getNutrientValue(nutrients, Nutrient.salt)?.toStringAsFixed(2) ?? '-'} g",
             const Color(0xFF6B7280),
           ),
         ],
       ),
     ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1, end: 0);
+  }
+
+  double? _getNutrientValue(Nutriments nutrients, Nutrient nutrient) {
+    return nutrients.getValue(nutrient, PerSize.oneHundredGrams) ??
+        nutrients.getValue(nutrient, PerSize.serving);
   }
 
   Widget _buildNutrientRow(

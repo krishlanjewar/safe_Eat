@@ -4,6 +4,7 @@ import 'package:safeat/features/navigation/bottom_navigation.dart';
 import 'package:openfoodfacts/openfoodfacts.dart';
 import 'package:safeat/features/product/presentation/pages/product_detail_screen.dart';
 import 'package:safeat/core/localization/app_localizations.dart';
+import 'package:safeat/main.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -32,8 +33,13 @@ class _SearchScreenState extends State<SearchScreen> {
               SearchTerms(terms: [query]),
             ],
             version: ProductQueryVersion.v3,
-            language: OpenFoodFactsLanguage.ENGLISH,
-            country: OpenFoodFactsCountry.USA,
+            fields: [ProductField.ALL],
+            language: localeNotifier.value.languageCode == 'hi'
+                ? OpenFoodFactsLanguage.HINDI
+                : localeNotifier.value.languageCode == 'as'
+                ? OpenFoodFactsLanguage.ASSAMESE
+                : OpenFoodFactsLanguage.ENGLISH,
+            country: OpenFoodFactsCountry.INDIA,
           );
 
       final SearchResult result = await OpenFoodAPIClient.searchProducts(
