@@ -78,7 +78,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
           'phone': _phoneController.text.trim(),
           'updated_at': DateTime.now().toIso8601String(),
         };
-
+        try {
+          await Supabase.instance.client.from('profiles').upsert(profileData);
         } catch (dbError) {
           debugPrint('Profile creation failed: $dbError');
         }

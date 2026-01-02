@@ -4,10 +4,7 @@ import 'package:safeat/features/home/presentation/pages/home_screen.dart';
 import 'package:safeat/features/chatbot/presentation/pages/chat_screen.dart';
 import 'package:safeat/features/search/presentation/pages/search_screen.dart';
 import 'package:safeat/features/scan/presentation/pages/scan_screen.dart';
-import 'package:safeat/features/search/presentation/pages/search_screen.dart';
-import 'package:safeat/features/chatbot/presentation/pages/chat_screen.dart';
 import 'package:safeat/features/pre_shopping/presentation/pages/pre_shopping_screen.dart';
-
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -23,8 +20,6 @@ class _MainLayoutState extends State<MainLayout> {
     const HomeScreen(),
     const SearchScreen(),
     const ScanScreen(),
-    const Center(child: Text("Pre-Shopping Screen Placeholder")),
-    const ChatScreen(),
     const PreShoppingScreen(),
     const ChatScreen(),
   ];

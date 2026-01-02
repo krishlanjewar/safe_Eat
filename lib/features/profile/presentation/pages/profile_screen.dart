@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:safeat/features/auth/presentation/pages/login_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
@@ -53,6 +52,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
             .single();
 
         if (mounted) {
+          final userModel = UserModel(
+            name: data['full_name'] ?? '',
+            age: (data['age'] ?? 0) as int,
+            weight: (data['weight'] ?? 0.0).toDouble(),
+            height: (data['height'] ?? 0.0).toDouble(),
+            dietaryPreference: data['dietary_preference'] ?? 'None',
+            allergies: (data['allergies'] as List<dynamic>?)
+                    ?.map((e) => e.toString())
+                    .toList() ??
+                [],
+            phone: data['phone'] ?? '',
+          );
+
+          // Update local provider
+          Provider.of<UserProvider>(context, listen: false).setUser(userModel);
+
           setState(() {
             _profile = data;
             _isLoading = false;
@@ -196,8 +211,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             IconButton(
               icon: Icon(Icons.logout, color: Colors.red[300]),
               onPressed: () {
+                // Clear state
+                Provider.of<UserProvider>(context, listen: false).clearUser();
                 Supabase.instance.client.auth.signOut();
-                LoginPage();
                 Navigator.of(
                   context,
                 ).pushNamedAndRemoveUntil('/', (route) => false);

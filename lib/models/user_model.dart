@@ -17,10 +17,9 @@ class UserModel {
     required this.phone,
   });
 
-  // BMI Calculation: weight (kg) / [height (m)]^2
+  // BMI Calculation: weight / (height * height) * 10000
   double get bmi {
     if (height <= 0) return 0.0;
-    double heightInMeters = height / 100;
-    return weight / (heightInMeters * heightInMeters);
+    return (weight / (height * height)) * 10000;
   }
 }
