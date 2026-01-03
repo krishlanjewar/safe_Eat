@@ -5,6 +5,10 @@ import 'package:safeat/features/product/presentation/pages/product_detail_screen
 import 'package:google_fonts/google_fonts.dart';
 import 'package:safeat/main.dart';
 
+/// A high-performance barcode scanning screen.
+///
+/// Provides both visual scanning via camera and manual barcode entry.
+/// Matches detected barcodes against the OpenFoodFacts database.
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});
 
@@ -40,55 +44,124 @@ class _ScanScreenState extends State<ScanScreen> {
       if (barcode.rawValue != null) {
         final String code = barcode.rawValue!;
         debugPrint('Barcode found! $code');
-
-        setState(() {
-          _isScanning = false;
-          _isLoading = true;
-        });
-
-        try {
-          // Fetch Product Data
-          final ProductQueryConfiguration configuration =
-              ProductQueryConfiguration(
-                code,
-                version: ProductQueryVersion.v3,
-                fields: [ProductField.ALL],
-                language: localeNotifier.value.languageCode == 'hi'
-                    ? OpenFoodFactsLanguage.HINDI
-                    : localeNotifier.value.languageCode == 'as'
-                    ? OpenFoodFactsLanguage.ASSAMESE
-                    : OpenFoodFactsLanguage.ENGLISH,
-                country: OpenFoodFactsCountry.INDIA,
-              );
-
-          final ProductResultV3 result = await OpenFoodAPIClient.getProductV3(
-            configuration,
-          );
-
-          if (result.status == ProductResultV3.statusSuccess &&
-              result.product != null) {
-            if (mounted) {
-              setState(() => _isLoading = false);
-              // Navigate to Product Detail
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      ProductDetailScreen(product: result.product!),
-                ),
-              );
-              // Resume scanning when back
-              setState(() => _isScanning = true);
-            }
-          } else {
-            _showErrorDialog("Product not found");
-          }
-        } catch (e) {
-          _showErrorDialog("Error fetching product: $e");
-        }
+        await _fetchProduct(code);
         break; // Process only first valid barcode
       }
     }
+  }
+
+  Future<void> _fetchProduct(String code) async {
+    if (code.isEmpty) return;
+
+    setState(() {
+      _isScanning = false;
+      _isLoading = true;
+    });
+
+    try {
+      // Fetch Product Data
+      final ProductQueryConfiguration configuration = ProductQueryConfiguration(
+        code,
+        version: ProductQueryVersion.v3,
+        fields: [ProductField.ALL],
+        language: localeNotifier.value.languageCode == 'hi'
+            ? OpenFoodFactsLanguage.HINDI
+            : localeNotifier.value.languageCode == 'as'
+            ? OpenFoodFactsLanguage.ASSAMESE
+            : OpenFoodFactsLanguage.ENGLISH,
+        country: OpenFoodFactsCountry.INDIA,
+      );
+
+      final ProductResultV3 result = await OpenFoodAPIClient.getProductV3(
+        configuration,
+      );
+
+      if (result.status == ProductResultV3.statusSuccess &&
+          result.product != null) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          // Navigate to Product Detail
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  ProductDetailScreen(product: result.product!),
+            ),
+          );
+          // Resume scanning when back
+          setState(() => _isScanning = true);
+        }
+      } else {
+        _showErrorDialog("Product not found");
+      }
+    } catch (e) {
+      _showErrorDialog("Error fetching product: $e");
+    }
+  }
+
+  void _showManualEntryDialog() {
+    final TextEditingController manualController = TextEditingController();
+    setState(() => _isScanning = false);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          "Manual Entry",
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "Enter the 13-digit barcode number manually.",
+              style: GoogleFonts.outfit(color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: manualController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                hintText: "8901234567890",
+                filled: true,
+                fillColor: Colors.grey[100],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              setState(() => _isScanning = true);
+            },
+            child: Text("Cancel", style: TextStyle(color: Colors.grey[600])),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final code = manualController.text.trim();
+              if (code.isNotEmpty) {
+                Navigator.pop(ctx);
+                _fetchProduct(code);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text("Search", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showErrorDialog(String message) {
@@ -177,9 +250,7 @@ class _ScanScreenState extends State<ScanScreen> {
             right: 0,
             child: Center(
               child: TextButton.icon(
-                onPressed: () {
-                  // TODO: Implement Manual Entry
-                },
+                onPressed: _showManualEntryDialog,
                 icon: const Icon(Icons.keyboard, color: Colors.white),
                 label: Text(
                   "Enter Code Manually",

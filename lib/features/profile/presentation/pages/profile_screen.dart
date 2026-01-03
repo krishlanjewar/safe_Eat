@@ -6,7 +6,6 @@ import 'package:safeat/core/localization/app_localizations.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:safeat/providers/user_provider.dart';
-import 'package:safeat/models/user_model.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -36,6 +35,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String _gender = 'Male';
   final List<String> _genderOptions = ['Male', 'Female', 'Other'];
+  final List<String> _dietaryOptions = [
+    'None',
+    'Vegetarian',
+    'Vegan',
+    'Keto',
+    'Paleo',
+    'Gluten-Free',
+  ];
 
   Map<String, dynamic>? _profile;
 
@@ -169,12 +176,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // If we have data from signup (Provider), use it.
     // Otherwise fallback to what we fetched from Supabase (if any).
     final String name = userData?.name ?? _profile?['full_name'] ?? 'Guest';
-    final String age = userData != null ? userData.age.toString() : (_profile?['age'] ?? '0').toString();
-    final double weight = userData?.weight ?? (_profile?['weight']?.toDouble() ?? 0.0);
-    final double height = userData?.height ?? (_profile?['height']?.toDouble() ?? 0.0);
-    final String dietary = userData?.dietaryPreference ?? _profile?['dietary_preference'] ?? 'None';
-    final String phone = userData?.phone ?? _profile?['phone'] ?? 'No phone number';
-    
+    final String age = userData != null
+        ? userData.age.toString()
+        : (_profile?['age'] ?? '0').toString();
+    final double weight =
+        userData?.weight ?? (_profile?['weight']?.toDouble() ?? 0.0);
+    final double height =
+        userData?.height ?? (_profile?['height']?.toDouble() ?? 0.0);
+    final String dietary =
+        userData?.dietaryPreference ??
+        _profile?['dietary_preference'] ??
+        'None';
+    final String phone =
+        userData?.phone ?? _profile?['phone'] ?? 'No phone number';
+
     // Allergies logic
     List<String> allergies = [];
     if (userData != null) {
@@ -234,7 +249,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 await Supabase.instance.client.auth.signOut();
                 if (mounted) {
                   Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const LoginPage()),
+                    MaterialPageRoute(builder: (_) => LoginPage()),
                     (route) => false,
                   );
                 }
@@ -295,7 +310,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildHeader(Color primary, Color text, String name, String age) {
+  Widget _buildHeader(Color primary, Color text) {
     return Row(
       children: [
         Container(
@@ -383,17 +398,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ],
                 ),
-              ),
-              Text(
-                '$age Years',
-                style: GoogleFonts.outfit(
-                  fontSize: 14,
-                  color: text.withOpacity(0.6),
-                ),
-              ),
-            ],
-          ),
         ),
+        // Text(
+        //   '$_ageController.text Years',
+        //   style: GoogleFonts.outfit(fontSize: 14, color: text.withOpacity(0.6)),
+        // ),
       ],
     );
   }
@@ -421,9 +430,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    double h = double.tryParse(_heightController.text) ?? 0;
-    double w = double.tryParse(_weightController.text) ?? 0;
-    double bmi = (h > 0) ? w / ((h / 100) * (h / 100)) : 0;
+    double height = double.tryParse(_heightController.text) ?? 0;
+    double weight = double.tryParse(_weightController.text) ?? 0;
+    double bmi = (height > 0) ? weight / ((height / 100) * (height / 100)) : 0;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -444,7 +453,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           _buildStatItem(
             'Weight',
-            '$weight kg',
+            '${weight.toStringAsFixed(1)} kg',
             Icons.monitor_weight_outlined,
             primary,
           ),
@@ -557,7 +566,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey),
                   ),
                   Text(
-                    dietaryPreference,
+                    _dietaryPreference,
                     style: GoogleFonts.outfit(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,

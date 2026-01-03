@@ -2,15 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'features/navigation/bottom_navigation.dart';
+import 'package:safeat/features/splash/presentation/pages/splash_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/localization/app_localizations.dart';
 import 'core/localization/locale_service.dart';
 import 'package:openfoodfacts/openfoodfacts.dart';
 
-// Global locale controller
+/// Global controller for localizations used across the app.
 final ValueNotifier<Locale> localeNotifier = ValueNotifier(const Locale('en'));
 
+/// Entry point of the Safe Eat application.
+/// Initializes:
+/// - Environment variables (.env)
+/// - Supabase (Auth/Profile)
+/// - OpenFoodFacts configuration
+/// - Localized locale services
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -42,7 +48,7 @@ Future<void> main() async {
     ValueListenableBuilder<Locale>(
       valueListenable: localeNotifier,
       builder: (context, locale, child) {
-        return MyApp(home: const MainLayout(), locale: locale);
+        return MyApp(home: const SplashScreen(), locale: locale);
       },
     ),
   );

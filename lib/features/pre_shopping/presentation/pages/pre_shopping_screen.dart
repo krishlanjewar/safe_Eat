@@ -6,6 +6,7 @@ import 'package:safeat/features/auth/presentation/pages/login_page.dart';
 import 'package:safeat/core/localization/app_localizations.dart';
 import 'package:safeat/features/pre_shopping/data/cart_manager.dart';
 import 'package:safeat/features/pre_shopping/presentation/pages/cart_screen.dart';
+import 'package:safeat/features/pre_shopping/presentation/widgets/category_items_screen.dart';
 
 class PreShoppingScreen extends StatefulWidget {
   const PreShoppingScreen({super.key});
@@ -15,237 +16,70 @@ class PreShoppingScreen extends StatefulWidget {
 }
 
 class _PreShoppingScreenState extends State<PreShoppingScreen> {
+  // Theme Colors (Consistent with app design)
+  final Color _purpleMain = const Color(0xFF7B1FA2);
+  final Color _bgCream = const Color(0xFFF7F5F0);
+  final Color _softBlack = const Color(0xFF2D3436);
+
   // Dummy Data
-  final List<FoodItem> _allFoodItems = [
-    FoodItem(
-      name: "Apples",
-      imageIcon: Icons.apple,
-      calories: 52,
-      protein: 0.3,
-      isHealthy: true,
-      description: "Rich in fiber and Vitamin C.",
-    ),
-    FoodItem(
-      name: "Potato Chips",
-      imageIcon: Icons.fastfood,
-      calories: 536,
-      protein: 7.0,
-      isHealthy: false,
-      description: "High in sodium and saturated fats.",
-    ),
-    FoodItem(
-      name: "Greek Yogurt",
-      imageIcon: Icons.icecream,
-      calories: 59,
-      protein: 10.0,
-      isHealthy: true,
-      description: "Excellent source of protein and probiotics.",
-    ),
-    FoodItem(
-      name: "Soda",
-      imageIcon: Icons.local_drink,
-      calories: 140,
-      protein: 0.0,
-      isHealthy: false,
-      description: "High sugar content, no nutritional value.",
-    ),
-    FoodItem(
-      name: "Chicken Breast",
-      imageIcon: Icons.restaurant,
-      calories: 165,
-      protein: 31.0,
-      isHealthy: true,
-      description: "Lean protein source, low in fat.",
-    ),
+  final List<Map<String, dynamic>> shoppingCategories = [
+    {
+      'name': 'Biscuits',
+      'icon': Icons.cookie_outlined,
+      'search_key': 'biscuits',
+    },
+    {
+      'name': 'Breakfast',
+      'icon': Icons.breakfast_dining_outlined,
+      'search_key': 'breakfast cereal spread',
+    },
+    {
+      'name': 'Chocolates',
+      'icon': Icons.icecream_outlined,
+      'search_key': 'chocolate dessert',
+    },
+    {
+      'name': 'Drinks',
+      'icon': Icons.local_drink_outlined,
+      'search_key': 'juice soda',
+    },
+    {
+      'name': 'Dairy & Eggs',
+      'icon': Icons.egg_outlined,
+      'search_key': 'dairy bread egg',
+    },
+    {
+      'name': 'Instant',
+      'icon': Icons.bolt_outlined,
+      'search_key': 'instant noodles',
+    },
+    {
+      'name': 'Munchies',
+      'icon': Icons.fastfood_outlined,
+      'search_key': 'snacks chips',
+    },
+    {'name': 'Bakes', 'icon': Icons.cake_outlined, 'search_key': 'cake bakery'},
+    {
+      'name': 'Spices & Oil',
+      'icon': Icons.grain_outlined,
+      'search_key': 'dry fruits oil spices',
+    },
+    {
+      'name': 'Meat',
+      'icon': Icons.restaurant_outlined,
+      'search_key': 'meat chicken fish',
+    },
+    {
+      'name': 'Rice & Dals',
+      'icon': Icons.grass_outlined,
+      'search_key': 'rice flour pulses',
+    },
+    {
+      'name': 'Tea & Coffee',
+      'icon': Icons.coffee_outlined,
+      'search_key': 'tea coffee',
+    },
   ];
-
-  late List<FoodItem> _filteredItems;
-  final TextEditingController _searchController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _filteredItems = _allFoodItems;
-  }
-
-  void _filterItems(String query) {
-    setState(() {
-      _filteredItems = _allFoodItems
-          .where(
-            (item) => item.name.toLowerCase().contains(query.toLowerCase()),
-          )
-          .toList();
-    });
-  }
-
-  void _showFoodDetails(BuildContext context, FoodItem item) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-          ),
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: item.isHealthy
-                          ? Colors.green.withOpacity(0.1)
-                          : Colors.red.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Icon(
-                      item.imageIcon,
-                      size: 32,
-                      color: item.isHealthy ? Colors.green : Colors.red,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.name,
-                          style: GoogleFonts.outfit(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1A1C1E),
-                          ),
-                        ),
-                        Text(
-                          item.isHealthy
-                              ? "Nutritious Choice"
-                              : "Occasional Treat",
-                          style: GoogleFonts.outfit(
-                            fontSize: 14,
-                            color: item.isHealthy ? Colors.green : Colors.red,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildNutritionInfo("Energy", "${item.calories} kcal"),
-                  _buildNutritionInfo("Protein", "${item.protein}g"),
-                  _buildNutritionInfo(
-                    "Health",
-                    item.isHealthy ? "High" : "Low",
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-              Text(
-                "Why buy this?",
-                style: GoogleFonts.outfit(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF1A1C1E),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                item.description,
-                style: GoogleFonts.outfit(
-                  fontSize: 15,
-                  color: const Color(0xFF4B5563),
-                  height: 1.6,
-                ),
-              ),
-              const SizedBox(height: 40),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () {
-                    cartManager.addItem(item);
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("${item.name} added to shopping list"),
-                        backgroundColor: const Color(0xFF10B981),
-                        behavior: SnackBarBehavior.floating,
-                        duration: const Duration(seconds: 1),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF10B981),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: Text(
-                    "Add to Shopping List",
-                    style: GoogleFonts.outfit(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildNutritionInfo(String label, String value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FBF9),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black.withOpacity(0.03)),
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: GoogleFonts.outfit(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF1A1C1E),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[600]),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -274,7 +108,7 @@ class _PreShoppingScreenState extends State<PreShoppingScreen> {
                 ).animate().scale(delay: 200.ms).fadeIn(),
                 const SizedBox(height: 32),
                 Text(
-                  AppLocalizations.of(context)!.translate('pantry_title'),
+                  "Smart Shopping List",
                   style: GoogleFonts.outfit(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -282,44 +116,24 @@ class _PreShoppingScreenState extends State<PreShoppingScreen> {
                   ),
                   textAlign: TextAlign.center,
                 ).animate().slideY(begin: 0.2, end: 0).fadeIn(),
-                const SizedBox(height: 12),
-                Text(
-                  AppLocalizations.of(context)!.translate('pantry_desc'),
-                  style: GoogleFonts.outfit(
-                    fontSize: 16,
-                    color: const Color(0xFF1A1C1E).withOpacity(0.6),
-                  ),
-                  textAlign: TextAlign.center,
-                ).animate().slideY(begin: 0.2, end: 0, delay: 100.ms).fadeIn(),
                 const SizedBox(height: 40),
                 SizedBox(
                   width: double.infinity,
                   height: 55,
                   child: ElevatedButton(
-                    onPressed: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const LoginPage(),
-                        ),
-                      );
-                      if (mounted)
-                        setState(() {}); // Refresh to check auth again
-                    },
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LoginPage(),
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF10B981),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: Text(
-                      AppLocalizations.of(context)!.translate('login_button'),
-                      style: GoogleFonts.outfit(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
+                    child: const Text("Login to Start Planning"),
                   ),
                 ).animate().slideY(begin: 0.2, end: 0, delay: 200.ms).fadeIn(),
               ],
@@ -335,7 +149,7 @@ class _PreShoppingScreenState extends State<PreShoppingScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          AppLocalizations.of(context)!.translate('pantry_title'),
+          "Pre-Shopping",
           style: GoogleFonts.outfit(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -343,146 +157,151 @@ class _PreShoppingScreenState extends State<PreShoppingScreen> {
           ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.shopping_cart_outlined,
-              color: Color(0xFF10B981),
-            ),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const CartScreen()),
-            ),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(
+                  Icons.shopping_cart_outlined,
+                  color: Color(0xFF10B981),
+                ),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CartScreen()),
+                ),
+              ),
+              ValueListenableBuilder(
+                valueListenable: cartManager.cartItems,
+                builder: (context, items, _) => items.isEmpty
+                    ? const SizedBox()
+                    : Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            items.length.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+              ),
+            ],
           ),
           const SizedBox(width: 8),
         ],
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24.0,
-                vertical: 8.0,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AppLocalizations.of(context)!.translate('pantry_desc'),
-                    style: GoogleFonts.outfit(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  TextField(
-                    controller: _searchController,
-                    onChanged: _filterItems,
-                    decoration: InputDecoration(
-                      hintText: "Search items...",
-                      prefixIcon: const Icon(
-                        Icons.search,
-                        color: Color(0xFF10B981),
-                      ),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(
-                          color: Colors.black.withOpacity(0.04),
-                        ),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 8.0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Find healthy alternatives before you go!",
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        color: Colors.grey[600],
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: ListView.separated(
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Text(
+                  "Food Categories",
+                  style: GoogleFonts.outfit(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1A1C1E),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                itemCount: _filteredItems.length,
-                separatorBuilder: (context, index) =>
-                    const SizedBox(height: 12),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  childAspectRatio: 0.8,
+                ),
+                itemCount: shoppingCategories.length,
                 itemBuilder: (context, index) {
-                  final item = _filteredItems[index];
-                  return InkWell(
-                    onTap: () => _showFoodDetails(context, item),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: Colors.black.withOpacity(0.04),
+                  final cat = shoppingCategories[index];
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CategoryItemsScreen(
+                            categoryName: cat['name'] as String,
+                            searchKey: cat['search_key'] as String,
+                          ),
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.01),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 52,
-                            height: 52,
+                      );
+                    },
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: Container(
                             decoration: BoxDecoration(
-                              color: item.isHealthy
-                                  ? const Color(0xFF10B981).withOpacity(0.05)
-                                  : Colors.red.withOpacity(0.05),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Icon(
-                              item.imageIcon,
-                              color: item.isHealthy
-                                  ? const Color(0xFF10B981)
-                                  : Colors.red[400],
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item.name,
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFF1A1C1E),
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  "${item.calories} kcal • ${item.protein}g protein",
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 13,
-                                    color: Colors.grey[500],
-                                  ),
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(24),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.02),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
                                 ),
                               ],
                             ),
+                            child: Center(
+                              child: Icon(
+                                cat['icon'] as IconData,
+                                color: const Color(0xFF10B981),
+                                size: 32,
+                              ),
+                            ),
                           ),
-                          const Icon(
-                            Icons.add_circle_outline_rounded,
-                            color: Color(0xFF10B981),
-                            size: 28,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          cat['name'] as String,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.outfit(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  );
+                  ).animate().fadeIn(delay: (index * 50).ms).scale();
                 },
               ),
-            ),
-          ],
+              const SizedBox(height: 32),
+              const SizedBox(height: 100),
+            ],
+          ),
         ),
       ),
     );

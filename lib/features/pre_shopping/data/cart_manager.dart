@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Represents an item in the user's pantry or shopping list.
 class FoodItem {
   final String name;
   final IconData imageIcon;
@@ -63,6 +64,9 @@ class FoodItem {
   }
 }
 
+/// A singleton manager that handles the persistence and state of the shopping cart.
+///
+/// It uses `SharedPreferences` to ensure the user's list is saved between sessions.
 class CartManager {
   static final CartManager _instance = CartManager._internal();
   factory CartManager() => _instance;

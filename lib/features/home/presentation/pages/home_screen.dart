@@ -12,6 +12,13 @@ import 'package:safeat/features/home/data/news_service.dart';
 import 'package:safeat/features/home/data/reddit_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+/// The landing page of the application providing a personalized experience.
+///
+/// It aggregates:
+/// - User safety profile context.
+/// - Featured food categories.
+/// - Dynamic food news and community reviews (Reddit).
+/// - Quick access to scanning and AI chat.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -151,117 +158,139 @@ class _HomeScreenState extends State<HomeScreen> {
       color: const Color(0xFFF9FBF9),
       child: _isLoading
           ? const Center(child: CircularProgressIndicator(color: organicGreen))
-          : SingleChildScrollView(
-              child: Column(
-                children: [
-                  // 1. Header Section (Gradient Background)
-                  _buildHeader(organicGreen, const Color(0xFF059669)),
+          : RefreshIndicator(
+              onRefresh: _handleRefresh,
+              color: organicGreen,
+              backgroundColor: Colors.white,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    // 1. Header Section (Gradient Background)
+                    _buildHeader(organicGreen, const Color(0xFF059669)),
 
-                  // 2. Main Content
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 16),
+                    // 2. Main Content
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 16),
 
-                        // Trial Banner (or Welcome Banner)
-                        _buildWelcomeBanner(),
+                          // Trial Banner (or Welcome Banner)
+                          _buildWelcomeBanner(),
 
-                        const SizedBox(height: 24),
+                          const SizedBox(height: 24),
 
-                        // Top Categories
-                        _buildSectionHeader(
-                          AppLocalizations.of(
-                            context,
-                          )!.translate('home_top_categories'),
-                          actionText: AppLocalizations.of(
-                            context,
-                          )!.translate('home_view_all'),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildCategoriesGrid(),
+                          // Top Categories
+                          _buildSectionHeader(
+                            AppLocalizations.of(
+                              context,
+                            )!.translate('home_top_categories'),
+                            actionText: AppLocalizations.of(
+                              context,
+                            )!.translate('home_view_all'),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildCategoriesGrid(),
 
-                        const SizedBox(height: 24),
+                          const SizedBox(height: 24),
 
-                        // Snacky Banner (Prominent AI Feature)
-                        _buildSnackyBanner(organicGreen),
+                          // Snacky Banner (Prominent AI Feature)
+                          _buildSnackyBanner(organicGreen),
 
-                        const SizedBox(height: 24),
+                          const SizedBox(height: 24),
 
-                        // Weekly Healthy Picks
-                        _buildSectionHeader(
-                          AppLocalizations.of(
-                            context,
-                          )!.translate('home_weekly_picks'),
-                          actionText: AppLocalizations.of(
-                            context,
-                          )!.translate('home_shop_now'),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildHealthyPicksList(organicGreen),
+                          // Weekly Healthy Picks
+                          _buildSectionHeader(
+                            AppLocalizations.of(
+                              context,
+                            )!.translate('home_weekly_picks'),
+                            actionText: AppLocalizations.of(
+                              context,
+                            )!.translate('home_shop_now'),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildHealthyPicksList(organicGreen),
 
-                        const SizedBox(height: 24),
+                          const SizedBox(height: 24),
 
-                        // Latest News
-                        _buildSectionHeader('Latest News'),
-                        const SizedBox(height: 16),
-                        if (_isNewsLoading)
-                          const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(20.0),
-                              child: CircularProgressIndicator(
-                                color: organicGreen,
-                              ),
-                            ),
-                          )
-                        else
-                          ..._newsArticles
-                              .take(3)
-                              .map(
-                                (article) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 12.0),
-                                  child: _buildNewsCard(organicGreen, article),
+                          // Latest News
+                          _buildSectionHeader('Latest News'),
+                          const SizedBox(height: 16),
+                          if (_isNewsLoading)
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(20.0),
+                                child: CircularProgressIndicator(
+                                  color: organicGreen,
                                 ),
                               ),
+                            )
+                          else
+                            ..._newsArticles
+                                .take(3)
+                                .map(
+                                  (article) => Padding(
+                                    padding: const EdgeInsets.only(
+                                      bottom: 12.0,
+                                    ),
+                                    child: _buildNewsCard(
+                                      organicGreen,
+                                      article,
+                                    ),
+                                  ),
+                                ),
 
-                        const SizedBox(height: 24),
+                          const SizedBox(height: 24),
 
-                        // Reddit Section
-                        _buildSectionHeader('Food Reviews (Reddit)'),
-                        const SizedBox(height: 16),
-                        if (_isRedditLoading)
-                          const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(20.0),
-                              child: CircularProgressIndicator(
-                                color: organicGreen,
-                              ),
-                            ),
-                          )
-                        else if (_redditPosts.isEmpty)
-                          Text(
-                            'No reviews found.',
-                            style: GoogleFonts.outfit(color: Colors.grey),
-                          )
-                        else
-                          ..._redditPosts
-                              .take(4)
-                              .map(
-                                (post) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 12.0),
-                                  child: _buildRedditCard(organicGreen, post),
+                          // Reddit Section
+                          _buildSectionHeader('Food Reviews (Reddit)'),
+                          const SizedBox(height: 16),
+                          if (_isRedditLoading)
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(20.0),
+                                child: CircularProgressIndicator(
+                                  color: organicGreen,
                                 ),
                               ),
+                            )
+                          else if (_redditPosts.isEmpty)
+                            Text(
+                              'No reviews found.',
+                              style: GoogleFonts.outfit(color: Colors.grey),
+                            )
+                          else
+                            ..._redditPosts
+                                .take(4)
+                                .map(
+                                  (post) => Padding(
+                                    padding: const EdgeInsets.only(
+                                      bottom: 12.0,
+                                    ),
+                                    child: _buildRedditCard(organicGreen, post),
+                                  ),
+                                ),
 
-                        const SizedBox(height: 100), // Bottom padding
-                      ],
-                    ).animate().fadeIn().slideY(begin: 0.1, end: 0),
-                  ),
-                ],
+                          const SizedBox(height: 100), // Bottom padding
+                        ],
+                      ).animate().fadeIn().slideY(begin: 0.1, end: 0),
+                    ),
+                  ],
+                ),
               ),
             ),
     );
+  }
+
+  Future<void> _handleRefresh() async {
+    setState(() {
+      _isNewsLoading = true;
+      _isRedditLoading = true;
+    });
+
+    await Future.wait([_fetchUserData(), _fetchNews(), _fetchReddit()]);
   }
 
   Widget _buildHeader(Color startColor, Color endColor) {

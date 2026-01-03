@@ -7,6 +7,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:safeat/features/auth/presentation/pages/login_page.dart';
 import 'package:safeat/main.dart';
+import 'dart:typed_data';
+import 'package:image_picker/image_picker.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -21,6 +23,8 @@ class _ChatScreenState extends State<ChatScreen> {
   final List<ChatMessage> _messages = [];
   bool _isTyping = false;
   final ScrollController _scrollController = ScrollController();
+  Uint8List? _selectedImageBytes;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -40,11 +44,72 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  Future<void> _pickImage() async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(
+                Icons.camera_alt_outlined,
+                color: Color(0xFF10B981),
+              ),
+              title: Text('Take Photo', style: GoogleFonts.outfit()),
+              onTap: () {
+                Navigator.pop(context);
+                _processPickedImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.photo_library_outlined,
+                color: Color(0xFF10B981),
+              ),
+              title: Text('Choose from Gallery', style: GoogleFonts.outfit()),
+              onTap: () {
+                Navigator.pop(context);
+                _processPickedImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _processPickedImage(ImageSource source) async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        imageQuality: 70,
+      );
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _selectedImageBytes = bytes;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+    }
+  }
+
   Future<void> _handleSubmitted(String text) async {
-    if (text.isEmpty) return;
+    if (text.isEmpty && _selectedImageBytes == null) return;
+
+    final currentImageBytes = _selectedImageBytes;
     _textController.clear();
     setState(() {
-      _messages.add(ChatMessage(text: text, isUser: true));
+      _messages.add(
+        ChatMessage(text: text, isUser: true, imageBytes: currentImageBytes),
+      );
+      _selectedImageBytes = null;
       _isTyping = true;
     });
     _scrollToBottom();
@@ -52,8 +117,9 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       final languageCode = localeNotifier.value.languageCode;
       final responseText = await _geminiService.sendMessage(
-        text,
+        text.isEmpty ? "What is in this image?" : text,
         languageCode: languageCode,
+        imageBytes: currentImageBytes,
       );
       if (mounted) {
         setState(() {
@@ -321,27 +387,44 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               ],
             ),
-            child: MarkdownBody(
-              data: message.text,
-              styleSheet: MarkdownStyleSheet(
-                p: GoogleFonts.outfit(
-                  color: isUser ? Colors.white : const Color(0xFF2D3135),
-                  fontSize: 15,
-                  height: 1.5,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (message.imageBytes != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.memory(
+                        message.imageBytes!,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                MarkdownBody(
+                  data: message.text,
+                  styleSheet: MarkdownStyleSheet(
+                    p: GoogleFonts.outfit(
+                      color: isUser ? Colors.white : const Color(0xFF2D3135),
+                      fontSize: 15,
+                      height: 1.5,
+                    ),
+                    tableBody: GoogleFonts.outfit(
+                      color: isUser ? Colors.white : const Color(0xFF2D3135),
+                      fontSize: 13,
+                    ),
+                    tableHead: GoogleFonts.outfit(
+                      fontWeight: FontWeight.bold,
+                      color: isUser ? Colors.white : const Color(0xFF2D3135),
+                    ),
+                    tableBorder: TableBorder.all(
+                      color: isUser ? Colors.white24 : Colors.grey[200]!,
+                      width: 1,
+                    ),
+                  ),
                 ),
-                tableBody: GoogleFonts.outfit(
-                  color: isUser ? Colors.white : const Color(0xFF2D3135),
-                  fontSize: 13,
-                ),
-                tableHead: GoogleFonts.outfit(
-                  fontWeight: FontWeight.bold,
-                  color: isUser ? Colors.white : const Color(0xFF2D3135),
-                ),
-                tableBorder: TableBorder.all(
-                  color: isUser ? Colors.white24 : Colors.grey[200]!,
-                  width: 1,
-                ),
-              ),
+              ],
             ),
           ),
         ],
@@ -350,67 +433,120 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildInputArea() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F1), // Soft grey-green
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxHeight:
-                      150, // Limits height so it doesn't cover the whole screen
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (_selectedImageBytes != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: Colors.white,
+            child: Row(
+              children: [
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.memory(
+                        _selectedImageBytes!,
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: GestureDetector(
+                        onTap: () => setState(() => _selectedImageBytes = null),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            size: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                child: Scrollbar(
-                  child: TextField(
-                    controller: _textController,
-                    maxLines: null,
-                    keyboardType: TextInputType.multiline,
-                    style: GoogleFonts.outfit(fontSize: 16),
-                    decoration: InputDecoration(
-                      hintText: AppLocalizations.of(
-                        context,
-                      )!.translate('chat_placeholder'),
-                      hintStyle: GoogleFonts.outfit(color: Colors.grey[500]),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16.0,
-                        vertical: 12.0,
+              ],
+            ),
+          ),
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 20,
+                offset: const Offset(0, -5),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(
+                  Icons.image_outlined,
+                  color: Color(0xFF10B981),
+                ),
+                onPressed: _pickImage,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F1), // Soft grey-green
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 150),
+                    child: Scrollbar(
+                      child: TextField(
+                        controller: _textController,
+                        maxLines: null,
+                        keyboardType: TextInputType.multiline,
+                        style: GoogleFonts.outfit(fontSize: 16),
+                        decoration: InputDecoration(
+                          hintText: AppLocalizations.of(
+                            context,
+                          )!.translate('chat_placeholder'),
+                          hintStyle: GoogleFonts.outfit(
+                            color: Colors.grey[500],
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16.0,
+                            vertical: 12.0,
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
+              const SizedBox(width: 8),
+              Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFF10B981),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_upward_rounded),
+                  color: Colors.white,
+                  onPressed: () => _handleSubmitted(_textController.text),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Container(
-            decoration: const BoxDecoration(
-              color: Color(0xFF10B981),
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.arrow_upward_rounded),
-              color: Colors.white,
-              onPressed: () => _handleSubmitted(_textController.text),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -469,6 +605,7 @@ class _ChatScreenState extends State<ChatScreen> {
 class ChatMessage {
   final String text;
   final bool isUser;
+  final Uint8List? imageBytes;
 
-  ChatMessage({required this.text, required this.isUser});
+  ChatMessage({required this.text, required this.isUser, this.imageBytes});
 }

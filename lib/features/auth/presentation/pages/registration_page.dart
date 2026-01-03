@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:safeat/models/user_model.dart';
+import 'package:safeat/providers/user_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:safeat/features/navigation/bottom_navigation.dart';
 import 'package:safeat/core/localization/app_localizations.dart';
@@ -76,7 +79,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
           'phone': _phoneController.text.trim(),
           'updated_at': DateTime.now().toIso8601String(),
         };
-
+        try {
+          await Supabase.instance.client.from('profiles').upsert(profileData);
         } catch (dbError) {
           debugPrint('Profile creation failed: $dbError');
         }
