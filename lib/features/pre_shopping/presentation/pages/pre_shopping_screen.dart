@@ -16,6 +16,11 @@ class PreShoppingScreen extends StatefulWidget {
 }
 
 class _PreShoppingScreenState extends State<PreShoppingScreen> {
+  // Theme Colors (Consistent with app design)
+  final Color _purpleMain = const Color(0xFF7B1FA2);
+  final Color _bgCream = const Color(0xFFF7F5F0);
+  final Color _softBlack = const Color(0xFF2D3436);
+
   // Dummy Data
   final List<Map<String, dynamic>> shoppingCategories = [
     {
