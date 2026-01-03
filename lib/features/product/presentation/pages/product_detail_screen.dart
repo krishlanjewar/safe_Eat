@@ -7,6 +7,12 @@ import 'package:safeat/features/chatbot/data/gemini_service.dart';
 import 'package:safeat/main.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
+/// Displays detailed information about a product and fetches AI-driven analysis.
+///
+/// Features:
+/// - Visualizes Nutri-Score, Nova Group, and Eco-Score.
+/// - Fetches a comprehensive safety breakdown from Gemini AI.
+/// - Lists localized nutrition facts and ingredients.
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
 

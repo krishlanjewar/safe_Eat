@@ -1,11 +1,19 @@
 import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
+/// A service that handles interaction with the Google Gemini AI.
+///
+/// It supports multi-modal conversations (text + images) and maintains
+/// a session-based history for context-aware responses.
 class GeminiService {
   late final GenerativeModel _model;
+
+  /// Stores the thread of conversation to provide context to the AI model.
   final List<Content> _conversationHistory = [];
 
+  /// Initializes the Gemini model using the API key from environment variables.
   GeminiService() {
     final apiKey = dotenv.env['GEMINI_API_KEY'];
 
@@ -191,7 +199,15 @@ Respect vegetarian and non-vegetarian preferences
 Overall, this food is okay occasionally. For daily eating, a banana or roasted chana is a much better choice. Small swaps make a big difference.""";
   }
 
-  Future<String> sendMessage(String message, {String? languageCode}) async {
+  /// Sends a [message] to the AI model, possibly including [imageBytes].
+  ///
+  /// The [languageCode] determines the response language (en, hi, as).
+  /// Returns the AI-generated text response.
+  Future<String> sendMessage(
+    String message, {
+    String? languageCode,
+    Uint8List? imageBytes,
+  }) async {
     try {
       String fullPrompt = message;
       if (languageCode != null) {
@@ -204,13 +220,21 @@ Overall, this food is okay occasionally. For daily eating, a banana or roasted c
 
       if (kDebugMode) {
         print('📤 Sending message to Gemini: $fullPrompt');
+        if (imageBytes != null) {
+          print('🖼️ With image: ${imageBytes.length} bytes');
+        }
+      }
+
+      final List<Part> parts = [TextPart(fullPrompt)];
+      if (imageBytes != null) {
+        parts.add(DataPart('image/jpeg', imageBytes));
       }
 
       // Create a chat session with the existing conversation history
       final chat = _model.startChat(history: _conversationHistory);
 
-      // Send the message
-      final response = await chat.sendMessage(Content.text(fullPrompt));
+      // Send the content (which can be text or multi-modal)
+      final response = await chat.sendMessage(Content.multi(parts));
 
       if (kDebugMode) {
         print('📥 Received response from Gemini');
@@ -222,7 +246,8 @@ Overall, this food is okay occasionally. For daily eating, a banana or roasted c
           "I'm having trouble understanding. Could you rephrase that?";
 
       // Update conversation history with both user message and response
-      _conversationHistory.add(Content.text(message));
+      // For history, we store multi-modal if image was present
+      _conversationHistory.add(Content.multi(parts));
       _conversationHistory.add(Content.model([TextPart(responseText)]));
 
       return responseText;

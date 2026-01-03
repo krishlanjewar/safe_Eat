@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+/// A data model representing a news article fetched from the News API.
 class NewsArticle {
   final String title;
   final String description;
@@ -31,6 +32,7 @@ class NewsArticle {
   }
 }
 
+/// A service that fetches the latest food safety and nutrition news.
 class NewsService {
   static const String _baseUrl = 'https://newsapi.org/v2/everything';
 
@@ -41,9 +43,10 @@ class NewsService {
     }
 
     final query =
-        '("food safety" OR "nutrition" OR "healthy eating" OR "packaged food" OR "food regulations" OR "food industry trends")';
+        '("food safety" OR "nutrition" OR "healthy eating" OR "packaged food" OR "food regulations")';
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
     final url = Uri.parse(
-      '$_baseUrl?q=${Uri.encodeComponent(query)}&language=en&sortBy=relevancy&pageSize=10&apiKey=$apiKey',
+      '$_baseUrl?q=${Uri.encodeComponent(query)}&language=en&sortBy=publishedAt&pageSize=10&apiKey=$apiKey&_t=$timestamp',
     );
 
     try {

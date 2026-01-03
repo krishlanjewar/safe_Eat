@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+/// A data model representing a post from the foodreview subreddit.
 class RedditPost {
   final String title;
   final String author;
@@ -39,13 +40,16 @@ class RedditPost {
   }
 }
 
+/// A service that fetches peer-reviewed food insights from Reddit.
 class RedditService {
   static const String _defaultUrl =
       'https://www.reddit.com/r/foodreviews/new.json';
 
   Future<List<RedditPost>> fetchFoodReviews() async {
     try {
-      final response = await http.get(Uri.parse(_defaultUrl));
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final url = '$_defaultUrl?t=$timestamp';
+      final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final List children = data['data']['children'];

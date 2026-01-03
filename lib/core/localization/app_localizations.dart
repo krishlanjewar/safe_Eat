@@ -2,6 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+/// Custom localization service for the Safe Eat app.
+///
+/// Loads translations from JSON files in `assets/lang/` and supports
+/// dynamic argument replacement within strings.
 class AppLocalizations {
   final Locale locale;
 
